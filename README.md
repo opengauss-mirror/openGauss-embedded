@@ -118,17 +118,9 @@ output目录结构如下：
 
 1. 运行单例测试：
     先执行`make test`进行编译测试
-<<<<<<< HEAD
     运行测试: `bash testshell.sh sql`
-=======
-    运行测试: `bash testshell.sh <all|sql>`
->>>>>>> 6871ed6042d753802d8906de3fd25be9011b886e
     说明: 
     -   sql: 运行sql引擎单元测试用例
-<<<<<<< HEAD
-=======
-
->>>>>>> 6871ed6042d753802d8906de3fd25be9011b886e
 
 2. 测试sql语句支持的类型字符串
    进入build/debug/src/compute/sql/test目录   
