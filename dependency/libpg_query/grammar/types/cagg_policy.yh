@@ -1,0 +1,8 @@
+%type <str> policy_name
+%type <str> subs_query_text
+%type <str> refreash_interval_text
+%type <str> start_offset_text
+%type <str> end_offset_text
+%type <str> bucket_field_text
+%type <str> bucket_width_text
+%type <str> init_time_text

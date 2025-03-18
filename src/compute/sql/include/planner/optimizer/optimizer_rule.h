@@ -1,0 +1,37 @@
+/*
+ * Copyright (c) GBA-NCTI-ISDC. 2022-2024.
+ *
+ * openGauss embedded is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *
+ * http://license.coscl.org.cn/MulanPSL2
+ *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FITFOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+ * -------------------------------------------------------------------------
+ *
+ * optimizer_type.h
+ *
+ * IDENTIFICATION
+ * openGauss-embedded/src/compute/sql/include/planner/optimizer/optimizer_type.h
+ *
+ * -------------------------------------------------------------------------
+ */
+#pragma once
+#include <cstdint>
+#include <string>
+
+namespace intarkdb {
+
+enum class OptRule : uint32_t {
+    INVALID = 0,
+    FILTER_PUSHDOWN,
+    FAST_COUNT,
+    REWRITE_EXPR,
+    PROJECTION_ELIMINATE,
+};
+
+}  // namespace intarkdb

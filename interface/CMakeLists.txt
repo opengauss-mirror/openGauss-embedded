@@ -1,0 +1,3 @@
+MESSAGE(STATUS "INSTARDB-INTERFACE CMAKE BUILD BEGIN")
+
+#add_subdirectory(jdbc)

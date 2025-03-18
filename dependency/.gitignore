@@ -1,0 +1,8 @@
+install_comm/
+install_comm_dist/
+install_llt/
+install_llt_dist/
+*.o
+*.so
+*.a
+*.log

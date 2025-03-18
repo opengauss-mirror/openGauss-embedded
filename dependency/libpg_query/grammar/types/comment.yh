@@ -1,0 +1,2 @@
+%type <objtype>	object_type_any_name
+%type <str> comment_text

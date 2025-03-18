@@ -1,0 +1,3 @@
+%type <str> var_name
+%type <str> table_id
+%type <str> var_text
