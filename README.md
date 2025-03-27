@@ -14,7 +14,6 @@
 -   build：编译构建目录
 -	dependency: 第三方依赖
 -   example: c/c++/golang/python接口使用样例
--   test: 测试代码
 -   tools: 工具项
 
 #### 二、编译指导
@@ -113,7 +112,6 @@ output目录结构如下：
     └── lib  # release版本库文件保存路径
 ```
 
-进入 output/<span style="color: red;"><debug|release></span>/bin/目录， 可以启动客户端测试工具intarkdb_cli,后面可以跟参数指定数据文件位置 eg: ./intarkdb_cli test
 进入 output/<span style="color: red;"><debug|release></span>/bin/目录， 可以启动客户端测试工具intarkdb_cli,后面可以跟参数指定数据文件位置 eg: ./intarkdb_cli test
 
 1. 运行单例测试：

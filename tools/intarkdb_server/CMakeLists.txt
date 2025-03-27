@@ -15,6 +15,7 @@ include_directories(${INTARKDB_SRC_PATH}/network/common)
 include_directories(${INTARKDB_SRC_PATH}/network/network)
 include_directories(${INTARKDB_SRC_PATH}/network/server)
 include_directories(${CJSON_INC_PATH})
+include_directories(${INTARKDB_HOME}/interface/c)
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}  InstarDB_DB_SRC)
 

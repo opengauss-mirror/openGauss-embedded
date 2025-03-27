@@ -37,7 +37,7 @@
 
 
 #include "compute/kv/intarkdb_kv.h"
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 
 
 #ifdef __cplusplus

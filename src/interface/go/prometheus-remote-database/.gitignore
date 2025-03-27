@@ -1,7 +1,0 @@
-intarkdb/
-intarkdb_cli
-.vscode/
-go.sum
-*.log
-nohup.out
-core*

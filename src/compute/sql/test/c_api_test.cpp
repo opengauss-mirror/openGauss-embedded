@@ -31,7 +31,7 @@
 #include "main/connection.h"
 #include "main/database.h"
 
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 
 class CApiTest : public ::testing::Test {
    protected:

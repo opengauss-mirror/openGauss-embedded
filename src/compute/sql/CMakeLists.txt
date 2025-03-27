@@ -65,6 +65,7 @@ include_directories(${INTARKDB_CJSON_PATH})
 include_directories(${INTARKDB_GMSSL_INC_PATH})
 include_directories(${INTARKDB_ZLIB_INC_PATH})
 include_directories(${INTARKDB_COMPUTE_TS_INC_PATH})
+include_directories(${INTARKDB_HOME}/interface/c)
 
 # sql_object
 add_library(sql_object OBJECT ${binder_source} ${catalog_source} ${main_source} ${common_source} ${execution_source} ${planner_source} ${data_source} ${type_source} ${function_source})

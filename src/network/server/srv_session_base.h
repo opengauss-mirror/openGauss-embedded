@@ -25,7 +25,7 @@
 #include "cm_sync.h"
 #include "cs_pipe.h"
 #include "compute/kv/intarkdb_kv.h"
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 #include "cm_base.h"
 
 #ifndef __SRV_SESSION_BASE_H__

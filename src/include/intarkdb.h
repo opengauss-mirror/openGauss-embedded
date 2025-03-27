@@ -24,7 +24,6 @@
 #ifndef __C_API_INTARKDB_H__
 #define __C_API_INTARKDB_H__
 
-#include "interface/c/intarkdb_sql.h"
 #include "compute/kv/intarkdb_kv.h"
 #include "compute/sql/include/common/winapi.h"
 #include "../VERSION.h"

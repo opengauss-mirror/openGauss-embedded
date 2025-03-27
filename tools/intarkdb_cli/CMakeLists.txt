@@ -30,7 +30,7 @@ cjson
 file(GLOB CLI_SRC ./*.cpp)
     
 add_executable(intarkdb_cli ${CLI_SRC})
-target_link_libraries(intarkdb_cli $<TARGET_OBJECTS:cl_linenoise> $<TARGET_OBJECTS:cli_assist> $<TARGET_OBJECTS:cli_util>)
+target_link_libraries(intarkdb_cli $<TARGET_OBJECTS:cl_linenoise>)
   
 if(WIN32)
     if(MSVC)
@@ -53,5 +53,4 @@ target_include_directories(intarkdb_cli PUBLIC ${INTARKDB_COMPUTE_SQL_INC_PATH}
                                                ${CMAKE_CURRENT_SOURCE_DIR}
                                                ${INTARKDB_THRID_INC_PATH}
                                                ${INTARKDB_FMT_INC_PATH}
-                                               ${CMAKE_CURRENT_SOURCE_DIR}/../cli_common
-                                               ${CMAKE_CURRENT_SOURCE_DIR}/../cli_common/linenoise-ng/include)
+                                               ${CMAKE_CURRENT_SOURCE_DIR}/../tools_dependency/linenoise-ng/include)

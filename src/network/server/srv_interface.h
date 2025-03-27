@@ -25,7 +25,7 @@
 */
 #include "cm_base.h"
 #include "cm_defs.h"
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 
 #ifdef __cplusplus
 extern "C" {

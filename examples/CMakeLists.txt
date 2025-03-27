@@ -3,4 +3,5 @@ IF (ENABLE_PG_QUERY)
     add_subdirectory(example-cpp)
 ENDIF()
 add_subdirectory(example-kv)
+add_subdirectory(sqlite3-api-test)
  

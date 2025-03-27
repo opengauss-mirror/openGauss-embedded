@@ -22,7 +22,7 @@
 */
 
 #include "login.h"
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 #include "storage/gstor/zekernel/common/cm_log.h"
 #include "common/srv_def.h"
 // #include "dependency/GmSSL/include/gmssl/sha2.h"

@@ -25,7 +25,7 @@
 #include "main/connection.h"
 #include "type/type_str.h"
 #include "common/exception.h"
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 
 const int32_t DATE_FMT_YYYYMMDDHHMISS_LEN = 19;
 

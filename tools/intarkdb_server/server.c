@@ -35,7 +35,7 @@
 #include "network/common/json/svr_json.h"
 
 #include "include/intarkdb.h"
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 
 
 #ifdef __cplusplus

@@ -25,7 +25,7 @@
 
 #include <string.h>
 
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 #include "network/server/srv_interface.h"
 
 /* Header for class org_intarkdb_core_IntarkdbNative */

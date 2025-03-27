@@ -26,7 +26,7 @@
 #include "intarkdb_kv.hpp"
 
 #include "compute/kv/kv_connection.h"
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 
 struct DatabaseWrapper_kv {
     std::shared_ptr<IntarkDB> instance;

@@ -25,7 +25,7 @@
 #define __OM_LOGIN_H__
 
 #include "storage/gstor/zekernel/common/cm_defs.h"
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 // #include "dependency/GmSSL/include/gmssl/sm3.h"
 // #include "dependency/GmSSL/include/gmssl/sm4.h"
 // #include "dependency/GmSSL/include/gmssl/sha2.h"

@@ -73,6 +73,7 @@ include_directories(${ZEKERNEL_KERNEL_PATH}/xact)
 include_directories(${ZEKERNEL_KERNEL_PATH}/tablespace)
 include_directories(${ZEKERNEL_KERNEL_PATH}/catalog)
 include_directories(${SERVER_COMMON_PATH})
+include_directories(${INTARKDB_HOME}/interface/c)
 
 link_directories(${LIBRARY_OUTPUT_PATH})
 

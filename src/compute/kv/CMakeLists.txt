@@ -34,6 +34,7 @@ include_directories(${INTARKDB_SRC_PATH})
 include_directories(${INTARKDB_ZEKERNEL_COMMON_INC_PATH})
 include_directories(${INTARKDB_UTF8PROC_INC_PATH})
 include_directories(${INTARKDB_CJSON_PATH})
+include_directories(${INTARKDB_HOME}/interface/c)
 
 # kv_object
 add_library(kv_object OBJECT ${KV_source})

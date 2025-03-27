@@ -9,7 +9,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(${INTARKDB_INCLUDE_PATH} 
-                    ${INTARKDB_SRC_PATH})
+                    ${INTARKDB_SRC_PATH}
+                    ${INTARKDB_HOME}/interface/c)
 
 set(INSTARDB_LINK_LIBS intarkdb)
 

@@ -1,0 +1,11 @@
+add_compile_options(
+    -fstack-protector-all 
+    $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,STATIC_LIBRARY>:-fPIC> 
+    $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:-fPIE>
+) 
+add_link_options(
+    -Wl,-z,now 
+    -Wl,-z,relro 
+    -Wl,-z,noexecstack 
+    $<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>:-pie>
+)

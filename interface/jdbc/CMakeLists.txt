@@ -17,6 +17,7 @@ include_directories($ENV{JAVA_HOME}/include/win32)
 else()
 include_directories($ENV{JAVA_HOME}/include/linux)
 endif(WIN32)
+include_directories(${INTARKDB_HOME}/interface/c)
 
 set(INTARKDB_LINK_LIBS
     fmt::fmt
@@ -49,7 +50,6 @@ else()
     $<TARGET_OBJECTS:network_server_obj>
     $<TARGET_OBJECTS:securec_obj>
     $<TARGET_OBJECTS:zlib_obj>
-    $<TARGET_OBJECTS:ts_object>
     $<TARGET_OBJECTS:status>)
 endif()
 

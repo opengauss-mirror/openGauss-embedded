@@ -28,7 +28,7 @@
 #include "srv_lsnr.h"
 #include "srv_agent.h"
 #include "srv_reactor.h"
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 #include "srv_def.h"
 #include "cm_base.h"
 #include "srv_interface.h"

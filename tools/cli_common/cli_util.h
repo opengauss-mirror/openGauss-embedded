@@ -1,1 +1,0 @@
-std::vector<std::string> SplitSQLStrings(const std::string& sql);

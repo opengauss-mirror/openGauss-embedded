@@ -20,7 +20,7 @@
 *
 * -------------------------------------------------------------------------
 */
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 #include <string.h>
 
 typedef struct st_example_result {

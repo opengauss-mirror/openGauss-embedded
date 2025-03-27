@@ -20,7 +20,7 @@
 *
 * -------------------------------------------------------------------------
 */
-#include "interface/c/intarkdb_sql.h"
+#include "intarkdb_sql.h"
 
 void create_example(intarkdb_connection conn, intarkdb_result intarkdb_result);
 void prepare_example_insert(intarkdb_connection conn, intarkdb_result intarkdb_result);

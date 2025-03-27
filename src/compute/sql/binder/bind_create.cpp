@@ -143,6 +143,7 @@ auto Binder::BindMultiColConstraint(const duckdb_libpgquery::PGConstraint &const
             throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "not support check constraint yet!");
         }
         case duckdb_libpgquery::PG_CONSTR_FOREIGN: {
+            throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "not support references constraint yet!");
             auto table_ref = BindRangeVar(*NullCheckPtrCast<duckdb_libpgquery::PGRangeVar>(constraint.pktable), false);
             auto base_table = static_cast<BoundBaseTable *>(table_ref.get());
             auto pk_user = base_table->GetSchema();
