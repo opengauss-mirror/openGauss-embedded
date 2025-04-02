@@ -26,7 +26,7 @@
 #include <vector>
 
 #include "binder/bound_statement.h"
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 #include "binder/statement/select_statement.h"
 #include "catalog/column.h"
 
@@ -38,10 +38,10 @@ typedef enum InsertOnConflictActionAlias {
 
 class InsertStatement : public BoundStatement {
    public:
-    explicit InsertStatement(std::unique_ptr<BoundTableRef> table, std::unique_ptr<SelectStatement> select)
+    explicit InsertStatement(std::unique_ptr<BoundQuerySource> table, std::unique_ptr<SelectStatement> select)
         : BoundStatement(StatementType::INSERT_STATEMENT), table_(std::move(table)), select_(std::move(select)) {}
 
-    std::unique_ptr<BoundTableRef> table_;
+    std::unique_ptr<BoundQuerySource> table_;
 
     //! The select statement to insert from
     std::unique_ptr<SelectStatement> select_;

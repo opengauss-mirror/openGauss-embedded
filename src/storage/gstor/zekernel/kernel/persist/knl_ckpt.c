@@ -150,7 +150,7 @@ void ckpt_close(knl_session_t *session)
     // 2024-11-06   the last fsync
     knl_attr_t attr = kernel->attr;
     for (uint32 i = 0; i < ctx->dbwr_count; i++) {
-        ctx->dbwr[i].fsync_time += (date_t)attr.dbwr_fsync_timeout * MICROSECS_PER_SECOND;
+        ctx->dbwr[i].fsync_time += (date_t)attr.dbwr_fsync_timeout * MICROSECS_PER_MILLISEC;
         dbwr_fdatasync(session, &ctx->dbwr[i]);
     }
 
@@ -1887,7 +1887,7 @@ status_t dbwr_fdatasync(knl_session_t *session, dbwr_context_t *dbwr)
 
     // 2024-11-06   if time to fsync
     knl_attr_t attr = session->kernel->attr;
-    if (KNL_NOW(session) - dbwr->fsync_time < (date_t)attr.dbwr_fsync_timeout * MICROSECS_PER_SECOND) {
+    if (KNL_NOW(session) - dbwr->fsync_time < (date_t)attr.dbwr_fsync_timeout * MICROSECS_PER_MILLISEC) {
         return GS_SUCCESS;
     }
     dbwr->fsync_time = KNL_NOW(session);

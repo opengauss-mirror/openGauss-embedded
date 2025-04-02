@@ -27,7 +27,8 @@
 #include "common/null_check_ptr.h"
 #include "common/string_util.h"
 
-auto Binder::BindInsert(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique_ptr<InsertStatement> {
+auto Binder::BindInsertStmt(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique_ptr<InsertStatement>
+{
     if (!pg_stmt->selectStmt) {
         throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "DEFAULT VALUES clause is not supported!");
     }
@@ -46,13 +47,12 @@ auto Binder::BindInsert(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique
             opt_or_action = ONCONFLICT_ALIAS_IGNORE;
         } else {
             opt_or_action = ONCONFLICT_ALIAS_NONE;
-            // throw intarkdb::Exception(ExceptionType::BINDER, "Bad onconflict alias, not support!");  // TODO
         }
     }
 
     // be dependent on select statement
     auto pg_stmt_sel = reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(pg_stmt->selectStmt);
-    auto select_statement = BindSelect(pg_stmt_sel);
+    auto select_statement = BindSelectStmt(pg_stmt_sel);
 
     // columns specified
     intarkdb::CaseInsensitiveSet column_names_set;
@@ -69,7 +69,7 @@ auto Binder::BindInsert(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique
     }
 
     // Bind insert columns
-    auto table_ref = BindRangeVar(*NullCheckPtrCast<duckdb_libpgquery::PGRangeVar>(pg_stmt->relation), false);
+    auto table_ref = BindRangeVarTableRef(*NullCheckPtrCast<duckdb_libpgquery::PGRangeVar>(pg_stmt->relation), false);
     auto dict_type = table_ref->DictType();
     if (dict_type != DIC_TYPE_TABLE) {
         throw std::runtime_error("Can't insert, entry type not support!");
@@ -90,7 +90,7 @@ auto Binder::BindInsert(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique
     std::string obj_name = base_table->GetBoundTableName();
     if (catalog_.CheckPrivilege(obj_user, obj_name, OBJ_TYPE_TABLE, GS_PRIV_INSERT) != GS_TRUE) {
         throw intarkdb::Exception(ExceptionType::BINDER,
-                                fmt::format("{}.{} insert permission denied!", obj_user, obj_name));
+            fmt::format("{}.{} insert permission denied!", obj_user, obj_name));
     }
     // check privileges again (for example : synonym)
     std::string real_obj_name = std::string(table_info.GetTableName());
@@ -99,7 +99,7 @@ auto Binder::BindInsert(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique
         std::string real_obj_user = catalog_.GetUserName(uid);
         if (catalog_.CheckPrivilege(real_obj_user, real_obj_name, OBJ_TYPE_TABLE, GS_PRIV_INSERT) != GS_TRUE) {
             throw intarkdb::Exception(ExceptionType::BINDER,
-                                    fmt::format("{}.{} insert permission denied!", real_obj_user, real_obj_name));
+                fmt::format("{}.{} insert permission denied!", real_obj_user, real_obj_name));
         }
     }
 
@@ -118,7 +118,6 @@ auto Binder::BindInsert(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique
             }
         }
         if (bound_columns.size() != column_names.size()) {
-            // FIXME: 找不到列名也会报这个错误
             throw std::runtime_error("Cannot explicitly insert columns");
         }
         // unbound defaults & bound defaults
@@ -160,6 +159,25 @@ auto Binder::BindInsert(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique
 
     if (column_names.size() != select_statement->select_expr_list.size()) {
         throw std::runtime_error("Number of columns does not match");
+    }
+    
+    if (meta_info.is_timescale) {
+        bool have_time_col = false;
+        uint32 part_key_slot = meta_info.part_table.keycols[0].column_id;
+        if (part_key_slot >= meta_info.column_count) {
+            throw std::runtime_error("part key slot is invalid in timescale table!");
+        }
+        for (const auto &column : bound_columns) {
+            if (column.GetRaw().col_slot == part_key_slot) {
+                have_time_col = true;
+                break;
+            }
+        }
+        if (!have_time_col && !meta_info.columns[part_key_slot].is_default) {
+            throw std::runtime_error(
+                "timescale table must give the time column("
+                + std::string(meta_info.columns[part_key_slot].name.str) + ") value!");
+        }
     }
 
     auto insert_statement = std::make_unique<InsertStatement>(std::move(table_ref), std::move(select_statement));

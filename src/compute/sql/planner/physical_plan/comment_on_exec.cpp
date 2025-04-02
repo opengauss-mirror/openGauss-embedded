@@ -22,8 +22,6 @@
 */
 #include "planner/physical_plan/comment_on_exec.h"
 
-#include "binder/expressions/bound_constant.h"
-
 auto CommentOnExec::Execute() const -> RecordBatch {
     exp_comment_def_t def;
     def.owner = { (char*)user_name.c_str(), (uint32)user_name.length() };
@@ -31,7 +29,7 @@ auto CommentOnExec::Execute() const -> RecordBatch {
     def.column = { (char*)column_name.c_str(), (uint32)column_name.length() };
     def.comment = { (char*)comment.c_str(), (uint32)comment.length() };
 
-    if (object_type_ == PG_OBJECT_COLUMN) {
+    if (object_type_ == ObjectType::COLUMN) {
         def.type = EXP_COMMENT_ON_COLUMN;
         auto table_info = catalog_->GetTable(user_name, table_name);
         if (table_info) {
@@ -57,7 +55,7 @@ auto CommentOnExec::Execute() const -> RecordBatch {
         } else {
             throw std::invalid_argument(fmt::format("Get table info failed! table : ") + table_name);
         }
-    } else if (object_type_ == PG_OBJECT_TABLE) {
+    } else if (object_type_ == ObjectType::TABLE) {
         def.type = EXP_COMMENT_ON_TABLE;
         auto table_info = catalog_->GetTable(user_name, table_name);
         if (table_info) {

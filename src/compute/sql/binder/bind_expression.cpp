@@ -25,7 +25,7 @@
 #include "binder/expressions/bound_binary_op.h"
 #include "binder/expressions/bound_cast.h"
 #include "binder/expressions/bound_conjunctive.h"
-#include "binder/expressions/bound_func_call.h"
+#include "binder/expressions/bound_func_expr.h"
 #include "binder/expressions/bound_in_expr.h"
 #include "binder/expressions/bound_like_op.h"
 #include "binder/expressions/bound_null_test.h"
@@ -44,6 +44,9 @@
 using namespace duckdb_libpgquery;
 
 const int MAX_EXPRESSION_DEPTH = 1000;
+const int CATALOG_SCHEMA_NAME = 3;
+const int SCHEMA_NAME = 2;
+const int UNQUALIFIED_NAME = 1;
 
 #define CHECK_EXPRESSION_DEPTH(depth)                                                                      \
     if ((depth) > MAX_EXPRESSION_DEPTH) {                                                                  \
@@ -59,15 +62,15 @@ auto Binder::BindExpression(duckdb_libpgquery::PGNode *node, int depth) -> std::
     switch (node->type) {
         case duckdb_libpgquery::T_PGResTarget:
             // typeT_ResTarget表示一个列,ResTarget 再细分为其他类型(ColumnRef,Star等)
-            return BindResTarget(reinterpret_cast<duckdb_libpgquery::PGResTarget *>(node), depth);
+            return BindExprResTarget(reinterpret_cast<duckdb_libpgquery::PGResTarget *>(node), depth);
         case duckdb_libpgquery::T_PGColumnRef:
             return BindColumnRef(reinterpret_cast<duckdb_libpgquery::PGColumnRef *>(node));
         case duckdb_libpgquery::T_PGAConst:
-            return BindConstant(reinterpret_cast<duckdb_libpgquery::PGAConst *>(node));
+            return BindConstanExpr(reinterpret_cast<duckdb_libpgquery::PGAConst *>(node));
         case duckdb_libpgquery::T_PGAStar:
-            return BindStar(reinterpret_cast<duckdb_libpgquery::PGAStar *>(node));
+            return BindStarExpr(reinterpret_cast<duckdb_libpgquery::PGAStar *>(node));
         case duckdb_libpgquery::T_PGFuncCall:
-            return BindFuncCall(reinterpret_cast<duckdb_libpgquery::PGFuncCall *>(node), depth);
+            return BindFuncExpression(reinterpret_cast<duckdb_libpgquery::PGFuncCall *>(node), depth);
         case duckdb_libpgquery::T_PGAExpr:
             return BindAExpr(reinterpret_cast<duckdb_libpgquery::PGAExpr *>(node), depth);
         case duckdb_libpgquery::T_PGBoolExpr: {
@@ -95,10 +98,11 @@ auto Binder::BindExpression(duckdb_libpgquery::PGNode *node, int depth) -> std::
             break;
     }
     throw intarkdb::Exception(ExceptionType::BINDER,
-                              fmt::format("type {} expr  not supported", Binder::NodeTagToString(node->type)));
+                              fmt::format("type {} expr  not supported", Binder::ConvertNodeTagToString(node->type)));
 }
 
-auto Binder::BindResTarget(duckdb_libpgquery::PGResTarget *root, int depth) -> std::unique_ptr<BoundExpression> {
+auto Binder::BindExprResTarget(duckdb_libpgquery::PGResTarget *root, int depth) -> std::unique_ptr<BoundExpression>
+{
     CHECK_EXPRESSION_DEPTH(depth);
     bind_location = root->location;
     auto expr = BindExpression(root->val, depth + 1);
@@ -111,7 +115,8 @@ auto Binder::BindResTarget(duckdb_libpgquery::PGResTarget *root, int depth) -> s
     return expr;
 }
 
-auto Binder::BindStar(duckdb_libpgquery::PGAStar *node) -> std::unique_ptr<BoundExpression> {
+auto Binder::BindStarExpr(duckdb_libpgquery::PGAStar *node) -> std::unique_ptr<BoundExpression>
+{
     bind_location = node->location;
     if (node->except_list) {
         // e.g SELECT * EXCLUDE(y) FROM integers;
@@ -221,10 +226,12 @@ auto Binder::BindColumnRef(duckdb_libpgquery::PGColumnRef *node) -> std::unique_
     }
     throw intarkdb::Exception(
         ExceptionType::NOT_IMPLEMENTED,
-        fmt::format("ColumnRef type {} not implemented!", Binder::NodeTagToString(column_fields->type)), bind_location);
+        fmt::format("ColumnRef type {} not implemented!",
+            Binder::ConvertNodeTagToString(column_fields->type)), bind_location);
 }
 
-auto Binder::BindConstant(duckdb_libpgquery::PGAConst *node) -> std::unique_ptr<BoundExpression> {
+auto Binder::BindConstanExpr(duckdb_libpgquery::PGAConst *node) -> std::unique_ptr<BoundExpression>
+{
     bind_location = node->location;
     auto &val = node->val;
     return BindValue(&val);
@@ -299,7 +306,7 @@ auto Binder::BindValue(duckdb_libpgquery::PGValue *node) -> std::unique_ptr<Boun
             break;
     }
     throw intarkdb::Exception(ExceptionType::BINDER,
-                              fmt::format("unsupported value type: {}", Binder::NodeTagToString(node->type)),
+                              fmt::format("unsupported value type: {}", Binder::ConvertNodeTagToString(node->type)),
                               bind_location);
 }
 
@@ -374,21 +381,24 @@ auto Binder::BindOverClause(const struct PGWindowDef &over) -> std::unique_ptr<i
     return over_clause;
 }
 
-auto Binder::BindFuncCall(duckdb_libpgquery::PGFuncCall *root, int depth) -> std::unique_ptr<BoundExpression> {
+auto Binder::BindFuncExpression(duckdb_libpgquery::PGFuncCall *root, int depth) -> std::unique_ptr<BoundExpression>
+{
     CHECK_EXPRESSION_DEPTH(depth);
     bind_location = root->location;
     auto name = root->funcname;
-    std::string catalog, schema, function_name;
-    if (name->length == 3) {
+    std::string catalog;
+    std::string schema;
+    std::string function_name;
+    if (name->length == CATALOG_SCHEMA_NAME) {
         // catalog + schema + name
         catalog = reinterpret_cast<duckdb_libpgquery::PGValue *>(name->head->data.ptr_value)->val.str;
         schema = reinterpret_cast<duckdb_libpgquery::PGValue *>(name->head->next->data.ptr_value)->val.str;
         function_name = reinterpret_cast<duckdb_libpgquery::PGValue *>(name->head->next->next->data.ptr_value)->val.str;
-    } else if (name->length == 2) {
+    } else if (name->length == SCHEMA_NAME) {
         // schema + name
         schema = reinterpret_cast<duckdb_libpgquery::PGValue *>(name->head->data.ptr_value)->val.str;
         function_name = reinterpret_cast<duckdb_libpgquery::PGValue *>(name->head->next->data.ptr_value)->val.str;
-    } else if (name->length == 1) {
+    } else if (name->length == UNQUALIFIED_NAME) {
         // unqualified name
         function_name = reinterpret_cast<duckdb_libpgquery::PGValue *>(name->head->data.ptr_value)->val.str;
     } else {
@@ -445,7 +455,7 @@ auto Binder::BindFuncCall(duckdb_libpgquery::PGFuncCall *root, int depth) -> std
     }
 
     if (IsValidFunction(function_name)) {
-        return std::make_unique<BoundFuncCall>(function_name, std::move(children));
+        return std::make_unique<BoundFuncExpr>(function_name.c_str(), std::move(children));
     }
     if (IsValidWindowFunction(function_name)) {
         if (root->over == nullptr) {
@@ -720,8 +730,7 @@ auto Binder::BindSubQueryExpr(duckdb_libpgquery::PGSubLink *root) -> std::unique
     Binder subquery_binder(this);
     // 特殊需求，这里使用shated_ptr
     auto select_statment = std::shared_ptr<SelectStatement>(
-        subquery_binder.BindSelect(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(root->subselect)));
-
+        subquery_binder.BindSelectStmt(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(root->subselect)));
     if (select_statment->return_list.size() == 0) {
         throw intarkdb::Exception(ExceptionType::BINDER, "subquery should have select list");
     }

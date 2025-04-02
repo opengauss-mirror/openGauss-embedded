@@ -1263,7 +1263,7 @@ static status_t gstor_init_default_params(knl_attr_t* attr)
     attr->page_clean_period = DEFAULT_PAGE_CLEAN_PERIOD;
     attr->enable_OSYNC = GS_TRUE;
     attr->enable_logdirectIO = GS_TRUE;
-    attr->enable_fdatasync = GS_TRUE;
+    attr->enable_fdatasync = GS_FALSE;
     attr->undo_auto_shrink = GS_TRUE;
     attr->repl_wait_timeout = DEFAULT_REPL_WAIT_TIMEOUT;
     attr->restore_check_version = GS_TRUE;
@@ -1330,6 +1330,21 @@ static status_t gstor_init_runtime_params(instance_t *cc_instance)
     return cm_alter_config(cc_instance->cc_config, "CONTROL_FILES", control_files, CONFIG_SCOPE_MEMORY, GS_TRUE);
 }
 
+static status_t load_ts_update_switch_param(instance_t *cc_instance, bool32 *enable_ts_update_support)
+{
+    char *value = cm_get_config_value(cc_instance->cc_config, "TS_UPDATE_SUPPORT");
+
+    if (cm_str_equal_ins(value, "TRUE")) {
+        *enable_ts_update_support = GS_TRUE;
+    } else if (cm_str_equal_ins(value, "FALSE")) {
+        *enable_ts_update_support = GS_FALSE;
+    } else {
+        GS_THROW_ERROR(ERR_INVALID_PARAMETER, "TS_UPDATE_SUPPORT");
+        return GS_ERROR;
+    }
+
+    return GS_SUCCESS;
+}
 
 /************************ 
     date: 20241022   
@@ -1460,7 +1475,6 @@ static status_t gstor_load_param_config(instance_t *cc_instance)
     GS_RETURN_IFERR(knl_param_get_uint32(cc_instance->cc_config, "MAX_TEMP_TABLES", &attr->max_temp_tables));
     GS_RETURN_IFERR(knl_param_get_uint32(cc_instance->cc_config, "INIT_LOCKPOOL_PAGES", &attr->init_lockpool_pages));
     GS_RETURN_IFERR(knl_param_get_uint32(cc_instance->cc_config, "DEFAULT_EXTENTS", &attr->default_extents));
-    GS_RETURN_IFERR(knl_param_get_uint32(cc_instance->cc_config, "EXEC_AGG_THREAD_NUM", &attr->exec_agg_thread_num));
     GS_RETURN_IFERR(knl_param_get_uint32(cc_instance->cc_config, "LOCK_WAIT_TIMEOUT", &attr->lock_wait_timeout));
     GS_RETURN_IFERR(knl_param_get_size_uint64(cc_instance->cc_config, "SQL_ENGINE_MEMORY_SIZE", &attr->max_sql_engine_memory));
     // [1000ms,1000000ms] || 0
@@ -1474,6 +1488,10 @@ static status_t gstor_load_param_config(instance_t *cc_instance)
     // [1,4096]
     if (attr->max_conn_num < (int32)GS_MIN_CONN_NUM || attr->max_conn_num > (int32)GS_MAX_CONN_NUM) {
         GS_THROW_ERROR(ERR_PARAMETER_OVER_RANGE, "MAX_CONN_NUM", (int64)GS_MIN_CONN_NUM, (int64)GS_MAX_CONN_NUM);
+        return GS_ERROR;
+    }
+
+    if (load_ts_update_switch_param(cc_instance, &attr->enable_ts_update) != GS_SUCCESS) {
         return GS_ERROR;
     }
 
@@ -1740,9 +1758,14 @@ static inline status_t gstor_open_cursor_internal(knl_session_t *session, knl_cu
         cursor->index_slot = index_slot;
         cursor->scan_mode = SCAN_MODE_INDEX;
     }
+    uint32 cache_is_insert = session->is_insert;
     session->is_insert = action == CURSOR_ACTION_INSERT ? GS_TRUE : GS_FALSE;
     knl_inc_session_ssn(session);
-    return knl_open_cursor(session, cursor, dc);
+    status_t ret = knl_open_cursor(session, cursor, dc);
+    if (ret != GS_SUCCESS) {
+        session->is_insert = cache_is_insert;
+    }
+    return ret;
 }
 
 static inline status_t gstor_set_key(char *key, uint32 key_len, row_assist_t *ra)
@@ -3737,18 +3760,6 @@ int32_t db_is_open(void *db_instance) {
                     && ins->kernel.dc_ctx.completed;
 }
 
-uint32_t get_streamagg_threadpool_num(void *db_instance) {
-    instance_t *ins = (instance_t*)db_instance;
-
-    return ins->kernel.attr.exec_agg_thread_num;
-}
-
-int32_t get_ts_cagg_switch_on(void *db_instance) {
-    instance_t *ins = (instance_t*)db_instance;
-
-    return ins->kernel.attr.enable_ts_cagg;
-}
-
 char * get_database_home_path(void *db_instance) {
     instance_t *ins = (instance_t*)db_instance;
     
@@ -3786,6 +3797,14 @@ uint32_t gstor_set_max_connections(void *handle, uint32_t max_conn) {
     cm_alter_config(ins->cc_config, "MAX_CONN_NUM", conn_num, CONFIG_SCOPE_BOTH, GS_TRUE);
 
     return ins->kernel.attr.max_conn_num;
+}
+
+
+int32_t get_ts_update_switch_on(void *handle)
+{
+    knl_session_t *session = EC_SESSION(handle);
+    instance_t *ins = session->kernel->server;
+    return ins->kernel.attr.enable_ts_update;
 }
 
 // ---------------------------------for user-----------------------------//
