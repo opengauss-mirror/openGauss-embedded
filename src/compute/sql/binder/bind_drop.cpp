@@ -26,29 +26,30 @@
 #include "common/string_util.h"
 #include "common/util.h"
 
-auto Binder::BindDrop(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_ptr<DropStatement> {
+auto Binder::BindDropStmt(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_ptr<DropStatement> 
+{
     if (stmt->objects->length != 1) {
-        throw std::invalid_argument(fmt::format("Can only drop one object at a time."));
+        throw intarkdb::Exception(ExceptionType::BINDER,"Unsupport drop multiple objects");
     }
     ObjectType type;
     switch (stmt->removeType) {
         case duckdb_libpgquery::PG_OBJECT_TABLE:
-            type = ObjectType::TABLE_ENTRY;
+            type = ObjectType::TABLE;
             break;
         case duckdb_libpgquery::PG_OBJECT_INDEX:
-            type = ObjectType::INDEX_ENTRY;
+            type = ObjectType::INDEX;
             break;
         case duckdb_libpgquery::PG_OBJECT_SEQUENCE:
-            type = ObjectType::SEQUENCE_ENTRY;
+            type = ObjectType::SEQUENCE;
             break;
         case duckdb_libpgquery::PG_OBJECT_VIEW:
-            type = ObjectType::VIEW_ENTRY;
+            type = ObjectType::VIEW;
             break;
         case duckdb_libpgquery::PG_OBJECT_SYNONYM:
-            type = ObjectType::SYNONYM_ENTRY;
+            type = ObjectType::SYNONYM;
             break;
         default:
-            throw std::invalid_argument(fmt::format("Cannot drop this type yet."));
+            throw intarkdb::Exception(ExceptionType::BINDER,"Unsupport drop type");
     }
 
     auto view_list = (duckdb_libpgquery::PGList *)stmt->objects->head->data.ptr_value;
@@ -61,7 +62,7 @@ auto Binder::BindDrop(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_ptr<Dr
     }
     name = intarkdb::StringUtil::Lower(name);
 
-    if (type == ObjectType::TABLE_ENTRY) {
+    if (type == ObjectType::TABLE) {
         auto table = BindBaseTableRef(user_, name, std::nullopt, true);
         if (table) {
             const auto &table_info = table->GetTableInfo();

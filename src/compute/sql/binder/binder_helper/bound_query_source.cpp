@@ -20,7 +20,7 @@
  *
  * -------------------------------------------------------------------------
  */
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 
 auto DataSourceTypeToString(DataSourceType type) -> std::string_view {
     switch (type) {

@@ -13,10 +13,10 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
  *
- * bound_table_ref.h
+ * bound_query_source.h
  *
  * IDENTIFICATION
- * openGauss-embedded/src/compute/sql/include/binder/bound_table_ref.h
+ * openGauss-embedded/src/compute/sql/include/binder/bound_query_source.h
  *
  * -------------------------------------------------------------------------
  */
@@ -41,12 +41,11 @@ enum class DataSourceType : uint8_t {
 
 auto DataSourceTypeToString(DataSourceType type) -> std::string_view;
 
-// 绑定表引用
-class BoundTableRef {
+class BoundQuerySource {
    public:
-    explicit BoundTableRef(DataSourceType type) : type_(type) {}
-    BoundTableRef() = default;
-    virtual ~BoundTableRef() = default;
+    explicit BoundQuerySource(DataSourceType type) : type_(type) {}
+    BoundQuerySource() = default;
+    virtual ~BoundQuerySource() = default;
 
     bool IsInvalid() const { return type_ == DataSourceType::INVALID; }
 
@@ -55,7 +54,7 @@ class BoundTableRef {
     void SetDictType(exp_dict_type_t dict_type) { dict_type_ = dict_type; }
     exp_dict_type_t DictType() { return dict_type_; }
 
-    virtual std::string ToString() const { return "BoundTableRef"; }
+    virtual std::string ToString() const { return "BoundQuerySource"; }
 
    private:
     DataSourceType type_{DataSourceType::INVALID};

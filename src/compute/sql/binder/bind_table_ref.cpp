@@ -30,24 +30,24 @@
 
 using namespace duckdb_libpgquery;
 
-auto Binder::BindTableRef(const PGNode &node) -> std::unique_ptr<BoundTableRef> {
+auto Binder::BindTableRef(const PGNode &node) -> std::unique_ptr<BoundQuerySource> {
     switch (node.type) {
         case T_PGRangeVar: {
             // 表 或 视图 类型，比如 select * from student;
-            return BindRangeVar((const PGRangeVar &)node);
+            return BindRangeVarTableRef((const PGRangeVar &)node);
         }
         case T_PGJoinExpr: {
             // 连接表达式类型，比如SELECT * FROM employees JOIN departments ON employees.department_id = departments.id;
-            return BindJoin((const PGJoinExpr &)node);
+            return BindJoinTableRef((const PGJoinExpr &)node);
         }
         case T_PGRangeSubselect: {
             // 子查询类型，比如SELECT department_id FROM (SELECCT * FROM emplyees ) WHERE salary > 10;
             // 就是T_PGRangeSubselect类型的节点
-            return BindRangeSubselect((const PGRangeSubselect &)node);
+            return BindRangeSubselectTableRef((const PGRangeSubselect &)node);
         }
         default:
             throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                      fmt::format("unsupported node type: {}", Binder::NodeTagToString(node.type)));
+        fmt::format("unsupported node type: {}", Binder::ConvertNodeTagToString(node.type)));
     }
 }
 
@@ -66,7 +66,7 @@ static auto CheckBindRangVar(const PGRangeVar &table_ref) -> void {
     }
 }
 
-auto Binder::BindRangeVar(const PGRangeVar &table_ref, bool is_select) -> std::unique_ptr<BoundTableRef> {
+auto Binder::BindRangeVarTableRef(const PGRangeVar &table_ref, bool is_select) -> std::unique_ptr<BoundQuerySource> {
     CheckBindRangVar(table_ref);
 
     std::string schema_name = table_ref.schemaname ? std::string(table_ref.schemaname) : user_;
@@ -78,16 +78,17 @@ auto Binder::BindRangeVar(const PGRangeVar &table_ref, bool is_select) -> std::u
                          table_ref.alias ? std::make_optional(table_ref.alias->aliasname) : std::nullopt);
     if (!base_table) {
         throw intarkdb::Exception(ExceptionType::BINDER,
-                                  fmt::format("table {}.{} not exists!", schema_name, table_ref.relname));
+                fmt::format("table {}.{} not exists!", schema_name, table_ref.relname));
     }
 
     if (is_select) {
         // check privileges
         std::string obj_user = base_table->GetSchema();
         std::string obj_name = base_table->GetBoundTableName();
-        if (!is_system_command_ && catalog_.CheckPrivilege(obj_user, obj_name, OBJ_TYPE_TABLE, GS_PRIV_SELECT) != GS_TRUE) {
+        if (!is_system_command_ && 
+            catalog_.CheckPrivilege(obj_user, obj_name, OBJ_TYPE_TABLE, GS_PRIV_SELECT) != GS_TRUE) {
             throw intarkdb::Exception(ExceptionType::BINDER,
-                                                fmt::format("{}.{} Permission denied!", obj_user, obj_name));
+                                        fmt::format("{}.{} Permission denied!", obj_user, obj_name));
         }
         // check privileges again (for example : synonym)
         const auto &table_info = base_table->GetTableInfo();
@@ -97,7 +98,7 @@ auto Binder::BindRangeVar(const PGRangeVar &table_ref, bool is_select) -> std::u
             std::string real_obj_user = catalog_.GetUserName(uid);
             if (catalog_.CheckPrivilege(real_obj_user, real_obj_name, OBJ_TYPE_TABLE, GS_PRIV_SELECT) != GS_TRUE) {
                 throw intarkdb::Exception(ExceptionType::BINDER,
-                                        fmt::format("{}.{} permission denied!", real_obj_user, real_obj_name));
+                                    fmt::format("{}.{} permission denied!", real_obj_user, real_obj_name));
             }
         }
     }
@@ -114,7 +115,7 @@ auto Binder::BindRangeVar(const PGRangeVar &table_ref, bool is_select) -> std::u
         case DIC_TYPE_VIEW: {
             auto query_sql = table_info.GetTableMetaInfo().sql;
             Binder view_binder(this);
-            view_binder.ParseAndSave(query_sql.str);
+            view_binder.ParseSQL(query_sql.str);
             const auto &stmts = view_binder.GetStatementNodes();
             auto node = reinterpret_cast<PGNode *>(stmts[0]);
             if (node->type == T_PGRawStmt) {
@@ -122,10 +123,10 @@ auto Binder::BindRangeVar(const PGRangeVar &table_ref, bool is_select) -> std::u
             }
             if (node->type != T_PGViewStmt && node->type != T_PGRawStmt) {
                 throw intarkdb::Exception(ExceptionType::BINDER,
-                                          fmt::format("invalid view statement {}", NodeTagToString(node->type)));
+                                          fmt::format("invalid view statement {}", ConvertNodeTagToString(node->type)));
             }
             auto view_node = reinterpret_cast<PGViewStmt *>(node);
-            return BindSubquery(reinterpret_cast<PGSelectStmt *>(view_node->query), view_node->view->relname);
+            return BindSubqueryTableRef(reinterpret_cast<PGSelectStmt *>(view_node->query), view_node->view->relname);
         }
         default:
             throw std::invalid_argument(
@@ -260,7 +261,7 @@ static auto HandleUsingClause(Binder &left_table_binder, Binder &right_table_bin
     return nullptr;
 }
 
-auto Binder::BindJoin(const PGJoinExpr &node) -> std::unique_ptr<BoundTableRef> {
+auto Binder::BindJoinTableRef(const PGJoinExpr &node) -> std::unique_ptr<BoundQuerySource> {
     if (node.isNatural) {
         throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "NATURAL JOIN is not supported yet");
     }
@@ -300,7 +301,7 @@ auto Binder::BindJoin(const PGJoinExpr &node) -> std::unique_ptr<BoundTableRef> 
                                        std::move(on_condition));
 }
 
-auto Binder::BindRangeSubselect(const PGRangeSubselect &node) -> std::unique_ptr<BoundTableRef> {
+auto Binder::BindRangeSubselectTableRef(const PGRangeSubselect &node) -> std::unique_ptr<BoundQuerySource> {
     if (node.lateral) {
         throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "LATERNAL in subquery is not supported yet");
     }
@@ -315,13 +316,13 @@ auto Binder::BindRangeSubselect(const PGRangeSubselect &node) -> std::unique_ptr
     // 子查询别名
     std::string subquery_name = node.alias ? node.alias->aliasname : fmt::format("__subquery_{}", GetNextUniversalID());
     // 将子查询的列绑定到当前上下文
-    return BindSubquery(reinterpret_cast<PGSelectStmt *>(node.subquery), subquery_name);
+    return BindSubqueryTableRef(reinterpret_cast<PGSelectStmt *>(node.subquery), subquery_name);
 }
 
-auto Binder::BindSubquery(PGSelectStmt *node, const std::string &subquery_name) -> std::unique_ptr<BoundSubquery> {
+auto Binder::BindSubqueryTableRef(PGSelectStmt *node, const std::string &subquery_name) -> std::unique_ptr<BoundSubquery> {
     // 绑定select statement
     auto subquery_binder = Binder(this);
-    auto subquery = subquery_binder.BindSelect(node);
+    auto subquery = subquery_binder.BindSelectStmt(node);
     // 查询列表
     std::vector<SchemaColumnInfo> col_infos;
     int slot = 0;
@@ -338,7 +339,7 @@ auto Binder::BindSubquery(PGSelectStmt *node, const std::string &subquery_name) 
 }
 
 auto Binder::BindValueList(PGList *list, std::vector<std::unique_ptr<BoundExpression>> &select_list)
-    -> std::unique_ptr<BoundTableRef> {
+    -> std::unique_ptr<BoundQuerySource> {
     auto value_clause = std::make_unique<BoundValueClause>();
     for (auto value_list = list->head; value_list != nullptr; value_list = value_list->next) {
         std::vector<std::unique_ptr<BoundExpression>> row_values;
@@ -384,6 +385,6 @@ auto Binder::BindValueList(PGList *list, std::vector<std::unique_ptr<BoundExpres
     }
     ctx.AddTableBinding(value_list_name, col_infos);
 
-    select_list = BindAllColumns(value_list_name.c_str());
+    select_list = BindAllColumnRefs(value_list_name.c_str());
     return value_clause;
 }

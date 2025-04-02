@@ -1109,5 +1109,24 @@ auto ClassCmd::PrintJSONFormat(RecordIterator &record_iterator) -> void {
 }
 
 auto ClassCmd::IsFinishQuery(const std::string &query) -> bool {
-    return (query.length() > 0 && (query[query.length() - 1] == ';' || query[0] == '.'));
+    if (query[0] == '.') {
+        return true;
+    }
+    //todo:和SplitSQLStrings结合起来统一处理
+    bool inQuote = false;
+    bool inDoublequotes = false;
+    if (query.length() > 0) {
+        for (int i = 0; i < query.length(); i++) {
+            char ch = query[i];
+            if (ch == '\'') {
+                inQuote = !inQuote;
+            } else if (ch == '"') {
+                inDoublequotes = !inDoublequotes;
+            } else if (ch == ';' && !inDoublequotes && !inQuote && i == query.length() - 1) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }

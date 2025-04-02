@@ -25,13 +25,15 @@
 #include <ctime>
 #include <iomanip>
 #include <iostream>
+#include <fstream>
 
 #include "catalog/catalog.h"
 #include "catalog/table_info.h"
 #include "main/connection.h"
 #include "main/database.h"
 
-class ConnectionForUpdateDeleteTest : public ::testing::Test {
+class ConnectionForUpdateDeleteTest : public ::testing::Test 
+{
    protected:
     ConnectionForUpdateDeleteTest() {}
     ~ConnectionForUpdateDeleteTest() {}
@@ -120,6 +122,26 @@ TEST_F(ConnectionForUpdateDeleteTest, TestDeleteSysTable) {
               "Binder Error: Cannot delete from system table : SYS_TABLES");
 }
 
+TEST_F(ConnectionForUpdateDeleteTest, TestTsTableUpdateFail) 
+{
+    conn->Query("drop table if exists product_task_stat");
+    auto r = conn->Query(R"(create table product_task_stat(
+                        planned_num int,
+                        effective_num int,
+                        collect_status int,
+                        create_time timestamp default now()
+                        ) partition by range(create_time) 
+                        timescale interval '1h' retention '30d' autopart crosspart;)");
+    EXPECT_EQ(r->GetRetCode(), 0);
+    r = conn->Query(R"(insert into product_task_stat (planned_num, effective_num, collect_status)
+                    values(999, 1000, 1000), (485, 500, 1000), (9999, 10000, 20000);)");
+    EXPECT_EQ(r->GetRetCode(), 0);
+    r = conn->Query(R"(update product_task_stat set planned_num = 10 where planned_num = 999;)");
+    ASSERT_NE(r->GetRetCode(), 0);
+    EXPECT_EQ(r->GetRetMsg(),
+              "Binder Error: time series table cannot update! please set TS_UPDATE_SUPPORT to TRUE");
+}
+
 TEST_F(ConnectionForUpdateDeleteTest, UpdateTableOverOnePage) {
     conn->Query("drop table if exists his_diagnosis_task_info");
     conn->Query("create sequence his_diagnosis_task_seq ");
@@ -205,4 +227,81 @@ TEST_F(ConnectionForUpdateDeleteTest, UpdateTableOverOnePage) {
     ASSERT_NE(r->GetRetCode(), 0);
     // r = conn->Query("select * from his_diagnosis_task_info");
     // ASSERT_EQ(r->GetRetCode(), 0);
+}
+
+void StartDBAndModifyCfgFile()
+{
+    {
+        std::shared_ptr<IntarkDB> db = std::shared_ptr<IntarkDB>(IntarkDB::GetInstance("./"));
+    }
+    std::string filename = "./intarkdb/cfg/intarkdb.ini";
+    std::string tempFilename = "temp.ini";
+
+    std::string keyToModify = "TS_UPDATE_SUPPORT";
+    std::string newValue = "TRUE";
+
+    std::ifstream inputFile(filename);
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening file." << std::endl;
+    }
+    std::ofstream tempFile(tempFilename);
+    if (!tempFile.is_open()) {
+        std::cerr << "Error creating temp file." << std::endl;
+    }
+
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        if (line.find(keyToModify) != std::string::npos) {
+            line = keyToModify + " = " + newValue;
+        }
+        tempFile << line << '\n';
+    }
+    inputFile.close();
+    tempFile.close();
+
+    if (std::rename(tempFilename.c_str(), filename.c_str()) != 0) {
+        std::cerr << "Error renaming file." << std::endl;
+    }
+}
+
+class ConnectionTsUpdateTest : public ::testing::Test {
+   protected:
+    ConnectionTsUpdateTest() {}
+    ~ConnectionTsUpdateTest() {}
+    static void SetUpTestSuite() {
+        system("rm -rf intarkdb/");
+        StartDBAndModifyCfgFile();
+        db_instance1 = std::shared_ptr<IntarkDB>(IntarkDB::GetInstance("./"));
+        // 启动db
+        db_instance1->Init();
+        conn1 = std::make_unique<Connection>(db_instance1);
+        conn1->Init();
+    }
+
+    static void TearDownTestSuite() {}
+
+    void SetUp() override {}
+
+    static std::shared_ptr<IntarkDB> db_instance1;
+    static std::unique_ptr<Connection> conn1;
+};
+
+std::shared_ptr<IntarkDB> ConnectionTsUpdateTest::db_instance1 = nullptr;
+std::unique_ptr<Connection> ConnectionTsUpdateTest::conn1 = nullptr;
+
+TEST_F(ConnectionTsUpdateTest, TestTsTableUpdateSuc) {
+    conn1->Query("drop table if exists product_task_stat");
+    auto r = conn1->Query(R"(create table product_task_stat(
+                        planned_num int,
+                        effective_num int,
+                        collect_status int,
+                        create_time timestamp default now()
+                        ) partition by range(create_time) 
+                         timescale interval '1h' retention '30d' autopart crosspart;)");
+    EXPECT_EQ(r->GetRetCode(), 0);
+    r = conn1->Query(R"(insert into product_task_stat (planned_num, effective_num, collect_status)
+                    values(999, 1000, 1000), (485, 500, 1000), (9999, 10000, 20000);)");
+    EXPECT_EQ(r->GetRetCode(), 0);
+    r = conn1->Query(R"(update product_task_stat set planned_num = 10 where planned_num = 999;)");
+    EXPECT_EQ(r->GetRetCode(), 0);
 }

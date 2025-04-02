@@ -68,7 +68,7 @@ class Planner {
     auto PlanWindowClause(SelectStatement& statement, LogicalPlanPtr& plan) -> LogicalPlanPtr;
     auto PlanSetOpSelect(SelectStatement& statement) -> LogicalPlanPtr;
     auto PlanInsert(InsertStatement& statement) -> LogicalPlanPtr;
-    auto PlanInsert(std::unique_ptr<BoundTableRef> table_ref, std::unique_ptr<CreateStatement> create_stmt,
+    auto PlanInsert(std::unique_ptr<BoundQuerySource> table_ref, std::unique_ptr<CreateStatement> create_stmt,
                     LogicalPlanPtr& plan) -> LogicalPlanPtr;
     auto PlanValues(SelectStatement& statement) -> LogicalPlanPtr;
 
@@ -76,7 +76,7 @@ class Planner {
     auto PlanDelete(DeleteStatement& statement) -> LogicalPlanPtr;
     auto PlanTransaction(void* handle, TransactionStatement& statement) -> LogicalPlanPtr;
     auto PlanDrop(DropStatement& statement) -> LogicalPlanPtr;
-    auto PlanTableRef(SelectStatement& statement, std::unique_ptr<BoundTableRef> table, scan_action_t action) -> LogicalPlanPtr;
+    auto PlanTableRef(SelectStatement& statement, std::unique_ptr<BoundQuerySource> table, scan_action_t action) -> LogicalPlanPtr;
     auto PlanSubqueryTableRef(BoundSubquery& subquery, scan_action_t action) -> LogicalPlanPtr;
     auto PlanJoinTableRef(SelectStatement& statement, BoundJoin& join, scan_action_t action) -> LogicalPlanPtr;
 

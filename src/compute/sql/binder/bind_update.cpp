@@ -36,12 +36,14 @@ auto CheckUpdateOption(duckdb_libpgquery::PGUpdateStmt *stmt) -> void {
     }
 }
 
-auto CheckTablePrivilege(const TableInfo &table_info) -> void {
+auto Binder::CheckTablePrivilege(const TableInfo &table_info) -> void 
+{
     if (table_info.GetObjectType() != DIC_TYPE_TABLE) {
         throw intarkdb::Exception(ExceptionType::BINDER, "Can't update, entry type not support!");
     }
-    if (table_info.IsTimeScale()) {
-        throw intarkdb::Exception(ExceptionType::BINDER, "time series table cannot update!");
+    if (table_info.IsTimeScale() && !get_ts_update_switch_on(((db_handle_t *)catalog_.GetStorageHandle())->handle)) {
+        throw intarkdb::Exception(ExceptionType::BINDER, 
+            "time series table cannot update! please set TS_UPDATE_SUPPORT to TRUE");
     }
     if (table_info.GetSpaceId() != SQL_SPACE_TYPE_USERS) {
         throw intarkdb::Exception(ExceptionType::BINDER,
@@ -71,7 +73,8 @@ auto Binder::BindUpdateItems(duckdb_libpgquery::PGList *target_list, const Bound
     return update_items;
 }
 
-auto Binder::BindUpdate(duckdb_libpgquery::PGUpdateStmt *stmt) -> std::unique_ptr<UpdateStatement> {
+auto Binder::BindUpdateStmt(duckdb_libpgquery::PGUpdateStmt *stmt) -> std::unique_ptr<UpdateStatement> 
+{
     // 检查是否支持更新选项
     CheckUpdateOption(stmt);
 
@@ -92,7 +95,7 @@ auto Binder::BindUpdate(duckdb_libpgquery::PGUpdateStmt *stmt) -> std::unique_pt
     std::string obj_name = table->GetBoundTableName();
     if (catalog_.CheckPrivilege(obj_user, obj_name, OBJ_TYPE_TABLE, GS_PRIV_UPDATE) != GS_TRUE) {
         throw intarkdb::Exception(ExceptionType::BINDER,
-                                fmt::format("{}.{} update permission denied!", obj_user, obj_name));
+            fmt::format("{}.{} update permission denied!", obj_user, obj_name));
     }
     // check privileges again (for example : synonym)
     std::string real_obj_name = std::string(table_info.GetTableName());
@@ -101,7 +104,7 @@ auto Binder::BindUpdate(duckdb_libpgquery::PGUpdateStmt *stmt) -> std::unique_pt
         std::string real_obj_user = catalog_.GetUserName(uid);
         if (catalog_.CheckPrivilege(real_obj_user, real_obj_name, OBJ_TYPE_TABLE, GS_PRIV_UPDATE) != GS_TRUE) {
             throw intarkdb::Exception(ExceptionType::BINDER,
-                                    fmt::format("{}.{} update permission denied!", real_obj_user, real_obj_name));
+                fmt::format("{}.{} update permission denied!", real_obj_user, real_obj_name));
         }
     }
 
@@ -111,7 +114,7 @@ auto Binder::BindUpdate(duckdb_libpgquery::PGUpdateStmt *stmt) -> std::unique_pt
 
     // set pairs
     auto update_items = BindUpdateItems(stmt->targetList, *table);
-    auto condition = BindWhere(stmt->whereClause);
+    auto condition = BindWhereClause(stmt->whereClause);
     auto update_statement = std::make_unique<UpdateStatement>();
     update_statement->table = std::move(table);
     update_statement->update_items = std::move(update_items);

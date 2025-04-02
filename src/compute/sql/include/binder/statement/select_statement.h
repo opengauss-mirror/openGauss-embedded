@@ -29,7 +29,7 @@
 #include "binder/bound_expression.h"
 #include "binder/bound_sort.h"
 #include "binder/bound_statement.h"
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 #include "common/set_operation_type.h"
 #ifdef ENABLE_PG_QUERY
 #include "nodes/lockoptions.hpp"
@@ -80,7 +80,7 @@ class SelectStatement : public BoundStatement {
     std::unique_ptr<SelectStatement> larg;
     std::unique_ptr<SelectStatement> rarg;
 
-    std::unique_ptr<BoundTableRef> table_ref;
+    std::unique_ptr<BoundQuerySource> table_ref;
 
     std::vector<std::unique_ptr<BoundExpression>> select_expr_list;
 

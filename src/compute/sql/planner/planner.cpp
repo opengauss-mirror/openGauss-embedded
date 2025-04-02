@@ -29,7 +29,7 @@
 #include <utility>
 
 #include "binder/bound_expression.h"
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 #include "binder/expressions/bound_agg_call.h"
 #include "binder/expressions/bound_alias.h"
 #include "binder/expressions/bound_binary_op.h"
@@ -38,7 +38,7 @@
 #include "binder/expressions/bound_column_def.h"
 #include "binder/expressions/bound_conjunctive.h"
 #include "binder/expressions/bound_constant.h"
-#include "binder/expressions/bound_func_call.h"
+#include "binder/expressions/bound_func_expr.h"
 #include "binder/expressions/bound_in_expr.h"
 #include "binder/expressions/bound_like_op.h"
 #include "binder/expressions/bound_null_test.h"
@@ -163,7 +163,7 @@ auto Planner::PlanJoinTableRef(SelectStatement& statement, BoundJoin& join_ref, 
     return std::make_shared<NestedLoopJoinPlan>(left, right, std::move(join_ref.on_condition), join_ref.join_type);
 }
 
-auto Planner::PlanTableRef(SelectStatement& statement, std::unique_ptr<BoundTableRef> table, scan_action_t action)
+auto Planner::PlanTableRef(SelectStatement& statement, std::unique_ptr<BoundQuerySource> table, scan_action_t action)
     -> LogicalPlanPtr {
     switch (table->Type()) {
         case DataSourceType::DUAL: {
@@ -717,7 +717,7 @@ auto Planner::PlanSubquery(BoundSubqueryExpr& expr) -> std::unique_ptr<BoundExpr
     return result_expression;
 }
 
-auto Planner::PlanInsert(std::unique_ptr<BoundTableRef> table_ref, std::unique_ptr<CreateStatement> create_stmt,
+auto Planner::PlanInsert(std::unique_ptr<BoundQuerySource> table_ref, std::unique_ptr<CreateStatement> create_stmt,
                          LogicalPlanPtr& plan) -> LogicalPlanPtr {
     auto table_ref_ptr = std::unique_ptr<BoundBaseTable>(static_cast<BoundBaseTable*>(table_ref.release()));
 
@@ -969,12 +969,12 @@ auto Planner::CreatePhysicalExpression(BoundExpression& logical_expr, const Logi
             return LikeOpFactory(like_op.OpName(), std::move(left), std::move(right), std::move(escape));
         }
         case ExpressionType::FUNC_CALL: {
-            auto& func_call_expr = static_cast<BoundFuncCall&>(logical_expr);
+            auto& func_call_expr = static_cast<BoundFuncExpr&>(logical_expr);
             std::vector<std::unique_ptr<Expression>> args;
-            for (auto& arg : func_call_expr.args_) {
+            for (auto& arg : func_call_expr.args) {
                 args.push_back(CreatePhysicalExpression(*arg, plan));
             }
-            return FunctionFactory(func_call_expr.func_name_, std::move(args));
+            return FunctionFactory(func_call_expr.funcname, std::move(args));
         }
         case ExpressionType::SEQ_FUNC: {
             auto& seq_func_expr = static_cast<BoundSequenceFunction&>(logical_expr);
@@ -1300,7 +1300,7 @@ auto Planner::CreatePhysicalPlan(const LogicalPlanPtr& plan) -> PhysicalPlanPtr 
         }
         case LogicalPlanType::Comment_On: {
             std::shared_ptr<CommentOnPlan> comment_on_plan = std::dynamic_pointer_cast<CommentOnPlan>(plan);
-            return std::make_shared<CommentOnExec>(comment_on_plan->catalog_, comment_on_plan->object_type_,
+            return std::make_shared<CommentOnExec>(comment_on_plan->catalog_, comment_on_plan->object_type,
                                                    comment_on_plan->user_name, comment_on_plan->table_name,
                                                    comment_on_plan->column_name, comment_on_plan->comment);
         }
@@ -1425,7 +1425,7 @@ auto Planner::PlanDrop(DropStatement& statement) -> LogicalPlanPtr {
 
 auto Planner::PlanCommentOn(Catalog* catalog, CommentStatement& statement) -> LogicalPlanPtr {
     LogicalPlanPtr plan =
-        std::make_shared<CommentOnPlan>(catalog, statement.object_type_, statement.user_name, statement.table_name,
+        std::make_shared<CommentOnPlan>(catalog, statement.object_type, statement.user_name, statement.table_name,
                                         statement.column_name, statement.comment);
 
     return plan;

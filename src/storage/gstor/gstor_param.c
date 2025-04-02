@@ -123,7 +123,6 @@ config_item_t g_parameters[] = {
     {"MAX_TEMP_TABLES",         GS_TRUE, ATTR_NONE, "128",      "64",       NULL, "-", "-", "GS_TYPE_INTEGER",  GS_FALSE },
     {"STACK_SIZE",              GS_TRUE, ATTR_NONE, "512K",     "512K",     NULL, "-", "-", "GS_TYPE_INTEGER",  GS_FALSE },
     {"JOB_QUEUE_CAPACITY",      GS_TRUE, ATTR_NONE, "60",       "60",       NULL, "-", "-", "GS_TYPE_INTEGER",  GS_FALSE },
-    {"EXEC_AGG_THREAD_NUM",     GS_TRUE, ATTR_NONE, "5",        "5",        NULL, "-", "-", "GS_TYPE_INTEGER",  GS_FALSE },
     {"CONTROL_FILES",           GS_TRUE, ATTR_NONE, "(%s/data/ctrl1,%s/data/ctrl2,%s/data/ctrl3)",  "(%s/data/ctrl1,%s/data/ctrl2,%s/data/ctrl3)",  NULL, "-", "-", "GS_TYPE_VARCHAR", GS_FALSE },
     {"ARCHIVE_FORMAT",          GS_TRUE, ATTR_NONE, "arch_%r_%s.arc",   "arch_%r_%s.arc",   NULL, "-", "-", "GS_TYPE_VARCHAR", GS_FALSE },
     {"SYS_USER_PASSWORD",       GS_TRUE, ATTR_NONE, "",   "9d062088d7779405895f9b4304f555cb921c2a72af5388d318da8834c6ff00ac",   NULL, "-", "-", "GS_TYPE_VARCHAR", GS_FALSE},
@@ -137,10 +136,14 @@ config_item_t g_parameters[] = {
         // 20241022   吴锦锋    增加是否在启动遇到日志损坏时先尽量修复，遇到损坏部分开始才忽略损坏文件修复的配置，本配置只有在ENFORCED_IGNORE_ALL_REDO_LOG为FALSE时才起作用
     {"SMON_LOOP_IN_IGNORE_MODE",   GS_TRUE, ATTR_NONE, "TRUE",    "TRUE",    NULL, "-", "-", "GS_TYPE_INTEGER", GS_TRUE  },
         // 20241101   吴锦锋    如果启动时遇到undo文件及其控制文件和段损坏，让系统监督smon对其进行收缩时,尽最大可能跳过损坏
-    {"MAX_LOG_FILE_SIZE",       GS_TRUE, ATTR_NONE, "128M",      "128M",      NULL, "-", "-", "GS_TYPE_INTEGER",  GS_TRUE  },
-    {"LOG_FILE_COUNT",          GS_TRUE, ATTR_NONE, "10",       "10",       NULL, "-", "-", "GS_TYPE_INTEGER",  GS_TRUE  },
-    {"SYNCHRONOUS_COMMIT",      GS_TRUE, ATTR_NONE, "on",       "off",      NULL, "-", "-", "GS_TYPE_VARCHAR",  GS_TRUE  },
-    {"ISOLATION_LEVEL",         GS_TRUE, ATTR_NONE, "1",        "1",        NULL, "-", "-", "GS_TYPE_INTEGER",  GS_TRUE, "## ISOLATION_LEVEL(1:Read Committed, 2:Repeatable Read)"  },
+    {"MAX_LOG_FILE_SIZE",       GS_TRUE, ATTR_NONE, "128M",      "128M",      NULL, "-", "-", 
+        "GS_TYPE_INTEGER",  GS_TRUE, "## The maximum size of the log file(default:128M)"},
+    {"LOG_FILE_COUNT",          GS_TRUE, ATTR_NONE, "10",       "10",       NULL, "-", "-", 
+        "GS_TYPE_INTEGER",  GS_TRUE, "## The number of log files(default:10)"},
+    {"ISOLATION_LEVEL",         GS_TRUE, ATTR_NONE, "1",        "1",        NULL, "-", "-", 
+        "GS_TYPE_INTEGER",  GS_TRUE, "## ISOLATION_LEVEL(1:Read Committed, 2:Repeatable Read)"  },
+    {"TS_UPDATE_SUPPORT",       GS_TRUE, ATTR_NONE, "FALSE",    "FALSE",    NULL, "-", "-", 
+        "GS_TYPE_INTEGER",  GS_TRUE, "## if support update or not for timeseries table"  },
 };
 
 // copy from g_parameters

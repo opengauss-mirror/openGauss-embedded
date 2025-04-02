@@ -33,19 +33,19 @@
 
 using duckdb_libpgquery::PGCreateTableAsStmt;
 
-static auto CheckUnSupportedFeature(PGCreateTableAsStmt &stmt) -> void {
-    if (stmt.relkind == duckdb_libpgquery::PG_OBJECT_MATVIEW) {
-        throw intarkdb::Exception(ExceptionType::BINDER, "Materialized view not implemented");
+static auto CheckUnSupportedFeature(PGCreateTableAsStmt &ctas_stmt) -> void {
+    if (ctas_stmt.onconflict == duckdb_libpgquery::PG_REPLACE_ON_CONFLICT) {
+        throw intarkdb::Exception(ExceptionType::BINDER,"Replace expr is not supported in create-table-as-select sql!");
     }
-    if (stmt.is_select_into || stmt.into->colNames || stmt.into->options) {
-        throw intarkdb::Exception(ExceptionType::BINDER, "Unimplemented features for CREATE TABLE as");
+    if (ctas_stmt.relkind == duckdb_libpgquery::PG_OBJECT_MATVIEW) {
+        throw intarkdb::Exception(ExceptionType::BINDER, "Unsupport Materialized view in create-table-as-select sql!");
     }
-    if (stmt.onconflict == duckdb_libpgquery::PG_REPLACE_ON_CONFLICT) {
-        throw intarkdb::Exception(ExceptionType::BINDER,
-                                  fmt::format("replace expr is not supported in create-table-as-select sql!"));
+    if (ctas_stmt.is_select_into || ctas_stmt.into->colNames || ctas_stmt.into->options) {
+        throw intarkdb::Exception(ExceptionType::BINDER, "Unsupport features in create-table-as-select sql!");
     }
-    if (stmt.query->type != duckdb_libpgquery::T_PGSelectStmt) {
-        throw intarkdb::Exception(ExceptionType::BINDER, "CREATE TABLE AS requires a SELECT clause");
+    
+    if (ctas_stmt.query->type != duckdb_libpgquery::T_PGSelectStmt) {
+        throw intarkdb::Exception(ExceptionType::BINDER, "Only select statement is supported in create-table-as-select sql!");
     }
 }
 
@@ -62,7 +62,7 @@ auto Binder::BindCtas(PGCreateTableAsStmt *stmt) -> std::unique_ptr<CtasStatemen
                                   fmt::format("table name is too long, max length:{}", GS_NAME_BUFFER_SIZE - 1));
     }
 
-    auto select_statement = BindSelect(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(stmt->query));
+    auto select_statement = BindSelectStmt(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(stmt->query));
 
     // TODO: 目前先暂时不支持param 存在于 select list 中[ctas 特殊情况]
     for (auto &expr : select_statement->select_expr_list) {
