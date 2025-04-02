@@ -1,0 +1,1270 @@
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/configure zlib_h6/configure
+*** zlib/configure	2022-08-26 10:49:25.764000000 +0800
+--- zlib_h6/configure	2022-08-26 10:49:16.912000000 +0800
+***************
+*** 88,93 ****
+--- 88,94 ----
+  warn=0
+  debug=0
+  sanitize=0
++ inflatehook=0
+  old_cc="$CC"
+  old_cflags="$CFLAGS"
+  OBJC='$(OBJZ) $(OBJG)'
+***************
+*** 139,144 ****
+--- 140,146 ----
+      -w* | --warn) warn=1; shift ;;
+      -d* | --debug) debug=1; shift ;;
+      --sanitize) sanitize=1; shift ;;
++     --inflatehook) inflatehook=1; shift ;;
+      *)
+        echo "unknown option: $1" | tee -a configure.log
+        echo "$0 --help for help" | tee -a configure.log
+***************
+*** 174,180 ****
+--- 176,185 ----
+    else
+      cc=${CROSS_PREFIX}cc
+    fi
++ else
++   cc=${CC}
+  fi
++ 
+  cflags=${CFLAGS-"-O3"}
+  # to force the asm version use: CFLAGS="-O3 -DASMV" ./configure
+  case "$cc" in
+***************
+*** 603,608 ****
+--- 608,620 ----
+    echo "Using z_ prefix on all symbols." | tee -a configure.log
+  fi
+  
++ if test $inflatehook -eq 1; then
++   sed < zconf.h "/#ifdef INFLATE_HOOK.* may be/s/def INFLATE_HOOK\(.*\) may be/ 1\1 was/" > zconf.temp.h
++   mv zconf.temp.h zconf.h
++   echo >> configure.log
++   echo "Using Z_INFLATE_HOOK" | tee -a configure.log
++ fi
++ 
+  # if --solo compilation was requested, save that in zconf.h and remove gz stuff from object lists
+  if test $solo -eq 1; then
+    sed '/#define ZCONF_H/a\
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/CMakeLists.txt zlib_h6/contrib/minizip/CMakeLists.txt
+*** zlib/contrib/minizip/CMakeLists.txt	1970-01-01 08:00:00.000000000 +0800
+--- zlib_h6/contrib/minizip/CMakeLists.txt	2022-08-26 10:49:16.916000000 +0800
+***************
+*** 0 ****
+--- 1,48 ----
++ cmake_minimum_required(VERSION 2.4.4)
++ project(minizip C)
++ 
++ set(MINIZIP_HDS zip.h unzip.h ioapi.h mztools.h)
++ set(MINIZIP_SRCS zip.c unzip.c ioapi.c mztools.c)
++ set(MINIZ_SRCS zip.c ioapi.c minizip.c)
++ set(MINIUNZ_SRCS unzip.c ioapi.c miniunz.c)
++ 
++ # zlib
++ include_directories(${CMAKE_SOURCE_DIR}/../..)
++ add_subdirectory(${CMAKE_SOURCE_DIR}/../.. zlib_build)
++ 
++ # minizip library
++ include_directories(${zlib_BINARY_DIR})
++ add_library(minizshared SHARED ${MINIZIP_HDS} ${MINIZIP_SRCS})
++ add_library(minizstatic STATIC ${MINIZIP_HDS} ${MINIZIP_SRCS})
++ target_link_libraries(minizshared PRIVATE zlib)
++ target_link_libraries(minizstatic PRIVATE zlibstatic)
++ set_target_properties(minizshared minizstatic PROPERTIES OUTPUT_NAME miniz)
++ 
++ # minizip and miniunz
++ add_executable(minizip ${MINIZ_SRCS})
++ add_executable(miniunz ${MINIUNZ_SRCS})
++ target_link_libraries(minizip PRIVATE zlibstatic)
++ target_link_libraries(miniunz PRIVATE zlibstatic)
++ 
++ # test
++ macro(ADDTEST name)
++     add_executable(${name} tests/${name}.c)
++     target_include_directories(${name} PUBLIC ${CMAKE_SOURCE_DIR})
++     target_link_libraries(${name} PRIVATE minizshared PRIVATE zlib)
++     add_test(${name} ${name})
++ endmacro()
++ enable_testing()
++ ADDTEST(test_miniz_use)
++ ADDTEST(test_memory_func)
++ ADDTEST(test_custom_io)
++ 
++ # install
++ if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL )
++     install(TARGETS minizshared minizstatic
++         RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
++         ARCHIVE DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
++         LIBRARY DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" )
++ endif()
++ if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
++     install(FILES ${MINIZIP_HDS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
++ endif()
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/ioapi.c zlib_h6/contrib/minizip/ioapi.c
+*** zlib/contrib/minizip/ioapi.c	2022-08-26 10:49:25.768000000 +0800
+--- zlib_h6/contrib/minizip/ioapi.c	2022-08-26 10:49:16.916000000 +0800
+***************
+*** 94,102 ****
+  
+  static voidpf ZCALLBACK fopen_file_func (voidpf opaque, const char* filename, int mode)
+  {
+-     (void)opaque;
+      FILE* file = NULL;
+      const char* mode_fopen = NULL;
+      if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER)==ZLIB_FILEFUNC_MODE_READ)
+          mode_fopen = "rb";
+      else
+--- 94,102 ----
+  
+  static voidpf ZCALLBACK fopen_file_func (voidpf opaque, const char* filename, int mode)
+  {
+      FILE* file = NULL;
+      const char* mode_fopen = NULL;
++     (void)opaque;
+      if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER)==ZLIB_FILEFUNC_MODE_READ)
+          mode_fopen = "rb";
+      else
+***************
+*** 113,121 ****
+  
+  static voidpf ZCALLBACK fopen64_file_func (voidpf opaque, const void* filename, int mode)
+  {
+-     (void)opaque;
+      FILE* file = NULL;
+      const char* mode_fopen = NULL;
+      if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER)==ZLIB_FILEFUNC_MODE_READ)
+          mode_fopen = "rb";
+      else
+--- 113,121 ----
+  
+  static voidpf ZCALLBACK fopen64_file_func (voidpf opaque, const void* filename, int mode)
+  {
+      FILE* file = NULL;
+      const char* mode_fopen = NULL;
++     (void)opaque;
+      if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER)==ZLIB_FILEFUNC_MODE_READ)
+          mode_fopen = "rb";
+      else
+***************
+*** 133,156 ****
+  
+  static uLong ZCALLBACK fread_file_func (voidpf opaque, voidpf stream, void* buf, uLong size)
+  {
+-     (void)opaque;
+      uLong ret;
+      ret = (uLong)fread(buf, 1, (size_t)size, (FILE *)stream);
+      return ret;
+  }
+  
+  static uLong ZCALLBACK fwrite_file_func (voidpf opaque, voidpf stream, const void* buf, uLong size)
+  {
+-     (void)opaque;
+      uLong ret;
+      ret = (uLong)fwrite(buf, 1, (size_t)size, (FILE *)stream);
+      return ret;
+  }
+  
+  static long ZCALLBACK ftell_file_func (voidpf opaque, voidpf stream)
+  {
+-     (void)opaque;
+      long ret;
+      ret = ftell((FILE *)stream);
+      return ret;
+  }
+--- 133,156 ----
+  
+  static uLong ZCALLBACK fread_file_func (voidpf opaque, voidpf stream, void* buf, uLong size)
+  {
+      uLong ret;
++     (void)opaque;
+      ret = (uLong)fread(buf, 1, (size_t)size, (FILE *)stream);
+      return ret;
+  }
+  
+  static uLong ZCALLBACK fwrite_file_func (voidpf opaque, voidpf stream, const void* buf, uLong size)
+  {
+      uLong ret;
++     (void)opaque;
+      ret = (uLong)fwrite(buf, 1, (size_t)size, (FILE *)stream);
+      return ret;
+  }
+  
+  static long ZCALLBACK ftell_file_func (voidpf opaque, voidpf stream)
+  {
+      long ret;
++     (void)opaque;
+      ret = ftell((FILE *)stream);
+      return ret;
+  }
+***************
+*** 158,174 ****
+  
+  static ZPOS64_T ZCALLBACK ftell64_file_func (voidpf opaque, voidpf stream)
+  {
+-     (void)opaque;
+      ZPOS64_T ret;
+      ret = (ZPOS64_T)FTELLO_FUNC((FILE *)stream);
+      return ret;
+  }
+  
+  static long ZCALLBACK fseek_file_func (voidpf  opaque, voidpf stream, uLong offset, int origin)
+  {
+-     (void)opaque;
+      int fseek_origin=0;
+      long ret;
+      switch (origin)
+      {
+      case ZLIB_FILEFUNC_SEEK_CUR :
+--- 158,174 ----
+  
+  static ZPOS64_T ZCALLBACK ftell64_file_func (voidpf opaque, voidpf stream)
+  {
+      ZPOS64_T ret;
++     (void)opaque;
+      ret = (ZPOS64_T)FTELLO_FUNC((FILE *)stream);
+      return ret;
+  }
+  
+  static long ZCALLBACK fseek_file_func (voidpf  opaque, voidpf stream, uLong offset, int origin)
+  {
+      int fseek_origin=0;
+      long ret;
++     (void)opaque;
+      switch (origin)
+      {
+      case ZLIB_FILEFUNC_SEEK_CUR :
+***************
+*** 190,198 ****
+  
+  static long ZCALLBACK fseek64_file_func (voidpf  opaque, voidpf stream, ZPOS64_T offset, int origin)
+  {
+-     (void)opaque;
+      int fseek_origin=0;
+      long ret;
+      switch (origin)
+      {
+      case ZLIB_FILEFUNC_SEEK_CUR :
+--- 190,198 ----
+  
+  static long ZCALLBACK fseek64_file_func (voidpf  opaque, voidpf stream, ZPOS64_T offset, int origin)
+  {
+      int fseek_origin=0;
+      long ret;
++     (void)opaque;
+      switch (origin)
+      {
+      case ZLIB_FILEFUNC_SEEK_CUR :
+***************
+*** 217,232 ****
+  
+  static int ZCALLBACK fclose_file_func (voidpf opaque, voidpf stream)
+  {
+-     (void)opaque;
+      int ret;
+      ret = fclose((FILE *)stream);
+      return ret;
+  }
+  
+  static int ZCALLBACK ferror_file_func (voidpf opaque, voidpf stream)
+  {
+-     (void)opaque;
+      int ret;
+      ret = ferror((FILE *)stream);
+      return ret;
+  }
+--- 217,232 ----
+  
+  static int ZCALLBACK fclose_file_func (voidpf opaque, voidpf stream)
+  {
+      int ret;
++     (void)opaque;
+      ret = fclose((FILE *)stream);
+      return ret;
+  }
+  
+  static int ZCALLBACK ferror_file_func (voidpf opaque, voidpf stream)
+  {
+      int ret;
++     (void)opaque;
+      ret = ferror((FILE *)stream);
+      return ret;
+  }
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/Makefile zlib_h6/contrib/minizip/Makefile
+*** zlib/contrib/minizip/Makefile	2022-08-26 10:49:25.768000000 +0800
+--- zlib_h6/contrib/minizip/Makefile	2022-08-26 10:49:16.916000000 +0800
+***************
+*** 1,13 ****
+! CC=cc
+! CFLAGS := $(CFLAGS) -O -I../..
+  
+  UNZ_OBJS = miniunz.o unzip.o ioapi.o ../../libz.a
+  ZIP_OBJS = minizip.o zip.o   ioapi.o ../../libz.a
+  
+  .c.o:
+  	$(CC) -c $(CFLAGS) $*.c
+  
+! all: miniunz minizip
+  
+  miniunz:  $(UNZ_OBJS)
+  	$(CC) $(CFLAGS) -o $@ $(UNZ_OBJS)
+--- 1,25 ----
+! CC ?= cc
+! CFLAGS:=$(CFLAGS) -O -I../..
+! SHARED_FLAGS:=-shared -fPIC 
+! LDFLAGS=-L../../ -lz
+! AR ?= ar
+! ARFLAGS=rcs
+! 
+  
+  UNZ_OBJS = miniunz.o unzip.o ioapi.o ../../libz.a
+  ZIP_OBJS = minizip.o zip.o   ioapi.o ../../libz.a
+  
++ SHARED_OBJS = zip.lo unzip.lo ioapi.lo mztools.lo
++ STATIC_OBJS = zip.o unzip.o ioapi.o mztools.o
++ 
++ 
+  .c.o:
+  	$(CC) -c $(CFLAGS) $*.c
+  
+! %lo: %c
+! 	$(CC) -c $(CFLAGS) $(SHARED_FLAGS) -o $@ $<
+! 
+! all: libminiz.so libminiz.a miniunz minizip
+  
+  miniunz:  $(UNZ_OBJS)
+  	$(CC) $(CFLAGS) -o $@ $(UNZ_OBJS)
+***************
+*** 15,21 ****
+  minizip:  $(ZIP_OBJS)
+  	$(CC) $(CFLAGS) -o $@ $(ZIP_OBJS)
+  
+! test:	miniunz minizip
+  	@rm -f test.*
+  	@echo hello hello hello > test.txt
+  	./minizip test test.txt
+--- 27,57 ----
+  minizip:  $(ZIP_OBJS)
+  	$(CC) $(CFLAGS) -o $@ $(ZIP_OBJS)
+  
+! libminiz.so: $(SHARED_OBJS)
+! 	$(CC) $(LDFLAGS) $(SHARED_FLAGS) $^ -o $@
+! 
+! libminiz.a: $(STATIC_OBJS) 
+! 	$(AR) $(ARFLAGS) $@ $^
+!                  
+! test_custom_io: test_custom_io.o libminiz.so
+! 	$(CC) -o $@ $< -L. -lminiz -L../../ -lz
+! 
+! test_memory_func: test_memory_func.o libminiz.so
+! 	$(CC) -o $@ $< -L. -lminiz -L../../ -lz
+! 
+! test_miniz_use: test_miniz_use.o libminiz.so
+! 	$(CC) -o $@ $< -L. -lminiz -L../../ -lz
+! 
+! test_custom_io.o: tests/test_custom_io.c
+! 	$(CC) -c -g -I. -o $@ $^
+! 
+! test_memory_func.o: tests/test_memory_func.c
+! 	$(CC) -c -g -I. -o $@ $^
+! 
+! test_miniz_use.o: tests/test_miniz_use.c
+! 	$(CC) -c -g -I. -o $@ $^
+! 
+! test: miniunz minizip test_custom_io test_memory_func test_miniz_use
+  	@rm -f test.*
+  	@echo hello hello hello > test.txt
+  	./minizip test test.txt
+***************
+*** 23,29 ****
+  	@mv test.txt test.old
+  	./miniunz test.zip
+  	@cmp test.txt test.old
+  	@rm -f test.*
+! 
+  clean:
+! 	/bin/rm -f *.o *~ minizip miniunz test.*
+--- 59,68 ----
+  	@mv test.txt test.old
+  	./miniunz test.zip
+  	@cmp test.txt test.old
++ 	@./test_miniz_use
++ 	@./test_memory_func
++ 	@./test_custom_io
+  	@rm -f test.*
+!                                                                          
+  clean:
+! 	/bin/rm -f *.o *.lo *~ minizip miniunz libminiz.so libminiz.a test.* test_*
+\ No newline at end of file
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/miniunz.c zlib_h6/contrib/minizip/miniunz.c
+*** zlib/contrib/minizip/miniunz.c	2022-08-26 10:49:25.772000000 +0800
+--- zlib_h6/contrib/minizip/miniunz.c	2022-08-26 10:49:16.916000000 +0800
+***************
+*** 656,659 ****
+      unzClose(uf);
+  
+      return ret_value;
+! }
+--- 656,659 ----
+      unzClose(uf);
+  
+      return ret_value;
+! }
+\ No newline at end of file
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/tests/test_custom_io.c zlib_h6/contrib/minizip/tests/test_custom_io.c
+*** zlib/contrib/minizip/tests/test_custom_io.c	1970-01-01 08:00:00.000000000 +0800
+--- zlib_h6/contrib/minizip/tests/test_custom_io.c	2022-08-26 10:49:16.916000000 +0800
+***************
+*** 0 ****
+--- 1,154 ----
++ /*
++     test_miniz_use.c 测试miniz库的定制io功能
++ */
++ #include <stdio.h>
++ #include <string.h>
++ 
++ #include <sys/types.h>
++ #include <sys/stat.h>
++ #include <fcntl.h>
++ #include <unistd.h>
++ 
++ #include "zip.h"
++ #include "unzip.h"
++ 
++ 
++ 
++ #define TEST_STRING "hello hello minizip."
++ #define TEST_STRING_SIZE 20
++ #define TEST_FILENAME "custom_io.txt"
++ #define TEST_ZIP_FILENAME "test.zip"
++ 
++ #define CHECK_ERROR(ret) { if (ret != ZIP_OK) { return ret; } }
++ #define CHECK_RESULT(ret, v) { if (ret != v) { return ret; } }
++ 
++ // custom io function
++ voidpf custom_fopen(voidpf opaque, const char* filename, int mode)
++ {
++     int file = -1;
++     int mode_fopen = -1;
++     if ((mode & ZLIB_FILEFUNC_MODE_READWRITEFILTER) == ZLIB_FILEFUNC_MODE_READ) {
++         mode_fopen = O_RDONLY;
++     }
++     else if (mode & ZLIB_FILEFUNC_MODE_EXISTING) {
++         mode_fopen = O_RDWR;
++     }
++     else if (mode & ZLIB_FILEFUNC_MODE_CREATE) {
++         mode_fopen = O_WRONLY | O_CREAT;
++     }
++     if ((filename != NULL) && (mode_fopen != -1)) {
++         file = open(filename, mode_fopen, 0);
++     }
++     return (voidpf)(size_t)file;
++ }
++ 
++ uLong custom_fread(voidpf opaque, voidpf stream, void* buf, uLong size)
++ {
++     return read((int)(size_t)stream, buf, size);
++ }
++ 
++ uLong custom_fwrite(voidpf opaque, voidpf stream, const void* buf, uLong size)
++ {
++     return write((int)(size_t)stream, buf, size);
++ }
++ 
++ int custom_fclose(voidpf opaque, voidpf stream)
++ {
++     return close((int)(size_t)stream);
++ }
++ 
++ int custom_ferror(voidpf opaque, voidpf stream)
++ {
++     return 0;
++ }
++ 
++ long custom_fseek(voidpf opaque, voidpf stream, uLong offset, int origin)
++ {
++     int fseek_origin = 0;
++     switch (origin)
++     {
++     case ZLIB_FILEFUNC_SEEK_CUR :
++         fseek_origin = SEEK_CUR;
++         break;
++     case ZLIB_FILEFUNC_SEEK_END :
++         fseek_origin = SEEK_END;
++         break;
++     case ZLIB_FILEFUNC_SEEK_SET :
++         fseek_origin = SEEK_SET;
++         break;
++     default: return -1;
++     }
++ 
++     long ret = lseek((int)(size_t)stream, (off_t)offset, fseek_origin);
++     if (ret != -1) {
++         ret = 0;
++     }
++     return ret;
++ }
++ 
++ long custom_ftell(voidpf opaque, voidpf stream)
++ {
++     return (long)lseek((int)(size_t)stream, (off_t)0, SEEK_CUR);
++ }
++ 
++ int test()
++ {
++     int ret = ZIP_OK;
++ 
++     // init custom io function
++     zlib_filefunc_def filefunc;
++     filefunc.zopen_file = custom_fopen;
++     filefunc.zread_file = custom_fread;
++     filefunc.zwrite_file = custom_fwrite;
++     filefunc.ztell_file = custom_ftell;
++     filefunc.zseek_file = custom_fseek;
++     filefunc.zclose_file = custom_fclose;
++     filefunc.zerror_file = custom_ferror;
++     filefunc.opaque = NULL;
++ 
++ 
++     // zip
++     zip_fileinfo zi;
++     memset(&zi, 0, sizeof(zip_fileinfo));
++     zipFile zfd = zipOpen2(TEST_ZIP_FILENAME, 0, NULL, &filefunc);
++     ret = zipOpenNewFileInZip(zfd, TEST_FILENAME, &zi, NULL, 0, NULL, 0, NULL, Z_DEFLATED, 9);
++     CHECK_ERROR(ret);
++     ret = zipWriteInFileInZip(zfd, TEST_STRING, TEST_STRING_SIZE);
++     CHECK_ERROR(ret);
++     ret = zipCloseFileInZip(zfd);
++     CHECK_ERROR(ret);
++     ret = zipClose(zfd, NULL);
++     CHECK_ERROR(ret);
++ 
++     // unzip
++     char buffer[TEST_STRING_SIZE + 1];
++     buffer[TEST_STRING_SIZE] = '\0';
++     unzFile unzfd = unzOpen2(TEST_ZIP_FILENAME, &filefunc);
++     ret = unzLocateFile(unzfd, TEST_FILENAME, 1);
++     CHECK_ERROR(ret);
++     ret = unzOpenCurrentFile(unzfd);
++     CHECK_ERROR(ret);
++     ret = unzReadCurrentFile(unzfd, (char *)buffer, TEST_STRING_SIZE);
++     CHECK_RESULT(ret, TEST_STRING_SIZE);
++     ret = unzCloseCurrentFile(unzfd);
++     CHECK_ERROR(ret);
++     ret = unzClose(unzfd);
++     CHECK_ERROR(ret);
++ 
++     // check result
++     if (strcmp(TEST_STRING, buffer) != 0) {
++         return -1;
++     }
++     return 0;
++ }
++ 
++ int main(int argc, char* argv[])
++ {
++     int ret = test();
++     if (ret == 0) {
++         printf("success - test_custom_io\n");
++     } else {
++         printf("fail - test_custom_io\n");
++     }
++     return ret;
++ }
+\ No newline at end of file
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/tests/test_memory_func.c zlib_h6/contrib/minizip/tests/test_memory_func.c
+*** zlib/contrib/minizip/tests/test_memory_func.c	1970-01-01 08:00:00.000000000 +0800
+--- zlib_h6/contrib/minizip/tests/test_memory_func.c	2022-08-26 10:49:16.920000000 +0800
+***************
+*** 0 ****
+--- 1,80 ----
++ /*
++     test_miniz_use.c 测试miniz库的setUnzipMemoryFunc和setZipMemoryFunc接口
++ */
++ 
++ #include <stdlib.h>
++ #include <string.h>
++ #include "zip.h"
++ #include "unzip.h"
++ 
++ 
++ 
++ #define TEST_STRING "hello hello minizip."
++ #define TEST_STRING_SIZE 20
++ #define TEST_FILENAME "memory_func.txt"
++ #define TEST_ZIP_FILENAME "test.zip"
++ 
++ #define CHECK_ERROR(ret) { if (ret != ZIP_OK) { return ret; } }
++ #define CHECK_RESULT(ret, v) { if (ret != v) { return ret; } }
++ 
++ voidp custom_malloc(size_t size)
++ {
++     return malloc(size);
++ }
++ 
++ void custom_free(voidp address)
++ {
++     free(address);
++ }
++ 
++ int test()
++ {
++     int ret = ZIP_OK;
++ 
++     // zip
++     zip_fileinfo zi;
++     memset(&zi, 0, sizeof(zip_fileinfo));
++     setZipMemoryFunc(custom_malloc, custom_free);
++     zipFile zfd = zipOpen(TEST_ZIP_FILENAME, 0);
++     ret = zipOpenNewFileInZip(zfd, TEST_FILENAME, &zi, NULL, 0, NULL, 0, NULL, Z_DEFLATED, 9);
++     CHECK_ERROR(ret);
++     ret = zipWriteInFileInZip(zfd, TEST_STRING, TEST_STRING_SIZE);
++     CHECK_ERROR(ret);
++     ret = zipCloseFileInZip(zfd);
++     CHECK_ERROR(ret);
++     ret = zipClose(zfd, NULL);
++     CHECK_ERROR(ret);
++ 
++     // unzip
++     char buffer[TEST_STRING_SIZE + 1];
++     buffer[TEST_STRING_SIZE] = '\0';
++     setUnzipMemoryFunc(custom_malloc, custom_free);
++     unzFile unzfd = unzOpen(TEST_ZIP_FILENAME);
++     ret = unzLocateFile(unzfd, TEST_FILENAME, 1);
++     CHECK_ERROR(ret);
++     ret = unzOpenCurrentFile(unzfd);
++     CHECK_ERROR(ret);
++     ret = unzReadCurrentFile(unzfd, (char *)buffer, TEST_STRING_SIZE);
++     CHECK_RESULT(ret, TEST_STRING_SIZE);
++     ret = unzCloseCurrentFile(unzfd);
++     CHECK_ERROR(ret);
++     ret = unzClose(unzfd);
++     CHECK_ERROR(ret);
++ 
++     // check result
++     if (strcmp(TEST_STRING, buffer) != 0) {
++         return -1;
++     }
++     return 0;
++ }
++ 
++ int main(int argc, char* argv[])
++ {
++     int ret = test();
++     if (ret == 0) {
++         printf("success - test_memory_func.\n");
++     } else {
++         printf("fail - test_memory_func.\n");
++     }
++     return ret;
++ }
+\ No newline at end of file
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/tests/test_miniz_use.c zlib_h6/contrib/minizip/tests/test_miniz_use.c
+*** zlib/contrib/minizip/tests/test_miniz_use.c	1970-01-01 08:00:00.000000000 +0800
+--- zlib_h6/contrib/minizip/tests/test_miniz_use.c	2022-08-26 10:49:16.920000000 +0800
+***************
+*** 0 ****
+--- 1,100 ----
++ /*
++     test_miniz_use.c 测试miniz库一般使用
++ */
++ 
++ #include <sys/types.h>
++ #include <unistd.h>
++ #include <string.h>
++ #include "zip.h"
++ #include "unzip.h"
++ 
++ 
++ 
++ #define TEST_STRING "hello hello minizip."
++ #define TEST_STRING_SIZE 20
++ #define TEST_FILENAME "miniz_use.txt"
++ 
++ #define TEST_STRING2 "hello hello minizip append mode."
++ #define TEST_STRING_SIZE2 32
++ #define TEST_FILENAME2 "miniz_use2.txt"
++ 
++ #define TEST_ZIP_FILENAME "test.zip"
++ 
++ #define CHECK_ERROR(ret) { if (ret != ZIP_OK) { return ret; } }
++ #define CHECK_RESULT(ret, v) { if (ret != v) { return ret; } }
++ 
++ int test()
++ {
++     int ret = ZIP_OK;
++ 
++     // zip create new file
++     zip_fileinfo zi;
++     memset(&zi, 0, sizeof(zip_fileinfo));
++     zipFile zfd = zipOpen(TEST_ZIP_FILENAME, APPEND_STATUS_CREATE);
++     ret = zipOpenNewFileInZip(zfd, TEST_FILENAME, &zi, NULL, 0, NULL, 0, NULL, Z_DEFLATED, 9);
++     CHECK_ERROR(ret);
++     ret = zipWriteInFileInZip(zfd, TEST_STRING, TEST_STRING_SIZE);
++     CHECK_ERROR(ret);
++     ret = zipCloseFileInZip(zfd);
++     CHECK_ERROR(ret);
++     ret = zipClose(zfd, NULL);
++     CHECK_ERROR(ret);
++ 
++     // zip append to exist file
++     memset(&zi, 0, sizeof(zip_fileinfo));
++     zfd = zipOpen(TEST_ZIP_FILENAME, APPEND_STATUS_ADDINZIP);
++     ret = zipOpenNewFileInZip(zfd, TEST_FILENAME2, &zi, NULL, 0, NULL, 0, NULL, Z_DEFLATED, 9);
++     CHECK_ERROR(ret);
++     ret = zipWriteInFileInZip(zfd, TEST_STRING2, TEST_STRING_SIZE2);
++     CHECK_ERROR(ret);
++     ret = zipCloseFileInZip(zfd);
++     CHECK_ERROR(ret);
++     ret = zipClose(zfd, NULL);
++     CHECK_ERROR(ret);
++ 
++     // unzip
++     unzFile unzfd = unzOpen(TEST_ZIP_FILENAME);
++     char buffer[TEST_STRING_SIZE + 1];
++     buffer[TEST_STRING_SIZE] = '\0';
++     ret = unzLocateFile(unzfd, TEST_FILENAME, 1);
++     CHECK_ERROR(ret);
++     ret = unzOpenCurrentFile(unzfd);
++     CHECK_ERROR(ret);
++     ret = unzReadCurrentFile(unzfd, (char *)buffer, TEST_STRING_SIZE);
++     CHECK_RESULT(ret, TEST_STRING_SIZE);
++     ret = unzCloseCurrentFile(unzfd);
++     CHECK_ERROR(ret);
++ 
++     char buffer2[TEST_STRING_SIZE2 + 1];
++     buffer2[TEST_STRING_SIZE2] = '\0';
++     ret = unzLocateFile(unzfd, TEST_FILENAME2, 1);
++     CHECK_ERROR(ret);
++     ret = unzOpenCurrentFile(unzfd);
++     CHECK_ERROR(ret);
++     ret = unzReadCurrentFile(unzfd, (char *)buffer2, TEST_STRING_SIZE2);
++     CHECK_RESULT(ret, TEST_STRING_SIZE2);
++     ret = unzCloseCurrentFile(unzfd);
++     CHECK_ERROR(ret);
++     ret = unzClose(unzfd);
++     CHECK_ERROR(ret);
++ 
++     // check result
++     if (strcmp(TEST_STRING, buffer) != 0) {
++         return -1;
++     }
++     if (strcmp(TEST_STRING2, buffer2) != 0) {
++         return -1;
++     }
++     return 0;
++ }
++ 
++ int main(int argc, char* argv[])
++ {
++     int ret = test();
++     if (ret == 0) {
++         printf("success - test_miniz_use.\n");
++     } else {
++         printf("fail - test_miniz_use.\n");
++     }
++     return ret;
++ }
+\ No newline at end of file
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/unzip.c zlib_h6/contrib/minizip/unzip.c
+*** zlib/contrib/minizip/unzip.c	2022-08-26 10:49:25.772000000 +0800
+--- zlib_h6/contrib/minizip/unzip.c	2022-08-26 10:49:16.920000000 +0800
+***************
+*** 108,118 ****
+  #define UNZ_MAXFILENAMEINZIP (256)
+  #endif
+  
+  #ifndef ALLOC
+! # define ALLOC(size) (malloc(size))
+  #endif
+  #ifndef TRYFREE
+! # define TRYFREE(p) {if (p) free(p);}
+  #endif
+  
+  #define SIZECENTRALDIRITEM (0x2e)
+--- 108,121 ----
+  #define UNZ_MAXFILENAMEINZIP (256)
+  #endif
+  
++ local unzip_malloc_func unzmallocfunc = malloc;
++ local unzip_free_func unzfreefunc = free;
++ 
+  #ifndef ALLOC
+! # define ALLOC(size) (unzmallocfunc(size))
+  #endif
+  #ifndef TRYFREE
+! # define TRYFREE(p) {if (p) unzfreefunc(p);}
+  #endif
+  
+  #define SIZECENTRALDIRITEM (0x2e)
+***************
+*** 2126,2128 ****
+--- 2129,2137 ----
+  {
+      return unzSetOffset64(file,pos);
+  }
++ 
++ extern void ZEXPORT setUnzipMemoryFunc (unzip_malloc_func mallocfunc, unzip_free_func freefunc)
++ {
++     unzmallocfunc = mallocfunc;
++     unzfreefunc = freefunc;
++ }
+\ No newline at end of file
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/unzip.h zlib_h6/contrib/minizip/unzip.h
+*** zlib/contrib/minizip/unzip.h	2022-08-26 10:49:25.772000000 +0800
+--- zlib_h6/contrib/minizip/unzip.h	2022-08-26 10:49:16.920000000 +0800
+***************
+*** 430,435 ****
+--- 430,440 ----
+  
+  
+  
++ /* set customised mallo/free functions */
++ typedef voidp (*unzip_malloc_func) OF((size_t size));
++ typedef void   (*unzip_free_func)  OF((voidp address));
++ extern void ZEXPORT setUnzipMemoryFunc OF((unzip_malloc_func mallocfunc, unzip_free_func freefunc));
++ 
+  #ifdef __cplusplus
+  }
+  #endif
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/zip.c zlib_h6/contrib/minizip/zip.c
+*** zlib/contrib/minizip/zip.c	2022-08-26 10:49:25.772000000 +0800
+--- zlib_h6/contrib/minizip/zip.c	2022-08-26 10:49:16.920000000 +0800
+***************
+*** 58,68 ****
+  #define Z_MAXFILENAMEINZIP (256)
+  #endif
+  
+  #ifndef ALLOC
+! # define ALLOC(size) (malloc(size))
+  #endif
+  #ifndef TRYFREE
+! # define TRYFREE(p) {if (p) free(p);}
+  #endif
+  
+  /*
+--- 58,71 ----
+  #define Z_MAXFILENAMEINZIP (256)
+  #endif
+  
++ local zip_malloc_func zipmallocfunc = malloc;
++ local zip_free_func zipfreefunc = free;
++ 
+  #ifndef ALLOC
+! # define ALLOC(size) (zipmallocfunc(size))
+  #endif
+  #ifndef TRYFREE
+! # define TRYFREE(p) {if (p) zipfreefunc(p);}
+  #endif
+  
+  /*
+***************
+*** 848,919 ****
+  /************************************************************/
+  extern zipFile ZEXPORT zipOpen3 (const void *pathname, int append, zipcharpc* globalcomment, zlib_filefunc64_32_def* pzlib_filefunc64_32_def)
+  {
+!     zip64_internal ziinit;
+!     zip64_internal* zi;
+      int err=ZIP_OK;
+  
+!     ziinit.z_filefunc.zseek32_file = NULL;
+!     ziinit.z_filefunc.ztell32_file = NULL;
+      if (pzlib_filefunc64_32_def==NULL)
+!         fill_fopen64_filefunc(&ziinit.z_filefunc.zfile_func64);
+      else
+!         ziinit.z_filefunc = *pzlib_filefunc64_32_def;
+  
+!     ziinit.filestream = ZOPEN64(ziinit.z_filefunc,
+                    pathname,
+                    (append == APPEND_STATUS_CREATE) ?
+                    (ZLIB_FILEFUNC_MODE_READ | ZLIB_FILEFUNC_MODE_WRITE | ZLIB_FILEFUNC_MODE_CREATE) :
+                      (ZLIB_FILEFUNC_MODE_READ | ZLIB_FILEFUNC_MODE_WRITE | ZLIB_FILEFUNC_MODE_EXISTING));
+  
+!     if (ziinit.filestream == NULL)
+          return NULL;
+  
+      if (append == APPEND_STATUS_CREATEAFTER)
+!         ZSEEK64(ziinit.z_filefunc,ziinit.filestream,0,SEEK_END);
+  
+!     ziinit.begin_pos = ZTELL64(ziinit.z_filefunc,ziinit.filestream);
+!     ziinit.in_opened_file_inzip = 0;
+!     ziinit.ci.stream_initialised = 0;
+!     ziinit.number_entry = 0;
+!     ziinit.add_position_when_writing_offset = 0;
+!     init_linkedlist(&(ziinit.central_dir));
+  
+  
+- 
+-     zi = (zip64_internal*)ALLOC(sizeof(zip64_internal));
+-     if (zi==NULL)
+-     {
+-         ZCLOSE64(ziinit.z_filefunc,ziinit.filestream);
+-         return NULL;
+-     }
+- 
+      /* now we add file in a zipfile */
+  #    ifndef NO_ADDFILEINEXISTINGZIP
+!     ziinit.globalcomment = NULL;
+      if (append == APPEND_STATUS_ADDINZIP)
+      {
+        // Read and Cache Central Directory Records
+!       err = LoadCentralDirectoryRecord(&ziinit);
+      }
+  
+      if (globalcomment)
+      {
+!       *globalcomment = ziinit.globalcomment;
+      }
+  #    endif /* !NO_ADDFILEINEXISTINGZIP*/
+  
+      if (err != ZIP_OK)
+      {
+  #    ifndef NO_ADDFILEINEXISTINGZIP
+!         TRYFREE(ziinit.globalcomment);
+  #    endif /* !NO_ADDFILEINEXISTINGZIP*/
+!         TRYFREE(zi);
+          return NULL;
+      }
+      else
+      {
+!         *zi = ziinit;
+!         return (zipFile)zi;
+      }
+  }
+  
+--- 851,921 ----
+  /************************************************************/
+  extern zipFile ZEXPORT zipOpen3 (const void *pathname, int append, zipcharpc* globalcomment, zlib_filefunc64_32_def* pzlib_filefunc64_32_def)
+  {
+!     zip64_internal *p_ziinit = NULL;
+      int err=ZIP_OK;
+  
+!     p_ziinit = (zip64_internal*)ALLOC(sizeof(zip64_internal));
+!     if (p_ziinit==NULL)
+!     {
+!         return NULL;
+!     }
+! 
+!     p_ziinit->z_filefunc.zseek32_file = NULL;
+!     p_ziinit->z_filefunc.ztell32_file = NULL;
+      if (pzlib_filefunc64_32_def==NULL)
+!         fill_fopen64_filefunc(&p_ziinit->z_filefunc.zfile_func64);
+      else
+!         p_ziinit->z_filefunc = *pzlib_filefunc64_32_def;
+  
+!     p_ziinit->filestream = ZOPEN64(p_ziinit->z_filefunc,
+                    pathname,
+                    (append == APPEND_STATUS_CREATE) ?
+                    (ZLIB_FILEFUNC_MODE_READ | ZLIB_FILEFUNC_MODE_WRITE | ZLIB_FILEFUNC_MODE_CREATE) :
+                      (ZLIB_FILEFUNC_MODE_READ | ZLIB_FILEFUNC_MODE_WRITE | ZLIB_FILEFUNC_MODE_EXISTING));
+  
+!     if (p_ziinit->filestream == NULL)
+!     {
+!         TRYFREE(p_ziinit);
+          return NULL;
++     }
+  
+      if (append == APPEND_STATUS_CREATEAFTER)
+!         ZSEEK64(p_ziinit->z_filefunc,p_ziinit->filestream,0,SEEK_END);
+  
+!     p_ziinit->begin_pos = ZTELL64(p_ziinit->z_filefunc,p_ziinit->filestream);
+!     p_ziinit->in_opened_file_inzip = 0;
+!     p_ziinit->ci.stream_initialised = 0;
+!     p_ziinit->number_entry = 0;
+!     p_ziinit->add_position_when_writing_offset = 0;
+!     init_linkedlist(&(p_ziinit->central_dir));
+  
+  
+      /* now we add file in a zipfile */
+  #    ifndef NO_ADDFILEINEXISTINGZIP
+!     p_ziinit->globalcomment = NULL;
+      if (append == APPEND_STATUS_ADDINZIP)
+      {
+        // Read and Cache Central Directory Records
+!       err = LoadCentralDirectoryRecord(p_ziinit);
+      }
+  
+      if (globalcomment)
+      {
+!       *globalcomment = p_ziinit->globalcomment;
+      }
+  #    endif /* !NO_ADDFILEINEXISTINGZIP*/
+  
+      if (err != ZIP_OK)
+      {
+  #    ifndef NO_ADDFILEINEXISTINGZIP
+!         TRYFREE(p_ziinit->globalcomment);
+  #    endif /* !NO_ADDFILEINEXISTINGZIP*/
+!         TRYFREE(p_ziinit);
+          return NULL;
+      }
+      else
+      {
+!         return (zipFile)p_ziinit;
+      }
+  }
+  
+***************
+*** 1697,1703 ****
+      if (err==ZIP_OK)
+          err = add_data_in_datablock(&zi->central_dir, zi->ci.central_header, (uLong)zi->ci.size_centralheader);
+  
+!     free(zi->ci.central_header);
+  
+      if (err==ZIP_OK)
+      {
+--- 1699,1705 ----
+      if (err==ZIP_OK)
+          err = add_data_in_datablock(&zi->central_dir, zi->ci.central_header, (uLong)zi->ci.size_centralheader);
+  
+!     TRYFREE(zi->ci.central_header);
+  
+      if (err==ZIP_OK)
+      {
+***************
+*** 2005,2007 ****
+--- 2007,2015 ----
+  
+    return retVal;
+  }
++ 
++ extern void ZEXPORT setZipMemoryFunc (zip_malloc_func mallocfunc, zip_free_func freefunc)
++ {
++     zipmallocfunc = mallocfunc;
++     zipfreefunc = freefunc;
++ }
+\ No newline at end of file
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/contrib/minizip/zip.h zlib_h6/contrib/minizip/zip.h
+*** zlib/contrib/minizip/zip.h	2022-08-26 10:49:25.772000000 +0800
+--- zlib_h6/contrib/minizip/zip.h	2022-08-26 10:49:16.920000000 +0800
+***************
+*** 360,365 ****
+--- 360,373 ----
+          zipRemoveExtraInfoBlock(pLocalHeaderExtraFieldData, &nLocalHeaderExtraFieldDataLen, 0x0001);
+  */
+  
++ 
++ typedef voidp (*zip_malloc_func) OF((size_t size));
++ typedef void   (*zip_free_func)  OF((voidp address));
++ extern void ZEXPORT setZipMemoryFunc OF((zip_malloc_func mfunc, zip_free_func ffunc));
++ /*
++   set customised mallo/free functions
++ */
++ 
+  #ifdef __cplusplus
+  }
+  #endif
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/crc32.c zlib_h6/crc32.c
+*** zlib/crc32.c	2022-08-26 10:49:25.776000000 +0800
+--- zlib_h6/crc32.c	2022-08-26 10:49:16.924000000 +0800
+***************
+*** 101,106 ****
+--- 101,109 ----
+  /* Local functions. */
+  local z_crc_t multmodp OF((z_crc_t a, z_crc_t b));
+  local z_crc_t x2nmodp OF((z_off64_t n, unsigned k));
++ local z_word_t byte_swap OF((z_word_t word));
++ local z_crc_t crc_word OF((z_word_t data));
++ local z_word_t crc_word_big OF((z_word_t data));
+  
+  /* If available, use the ARM processor CRC32 instruction. */
+  #if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32) && W == 8
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/inflate.c zlib_h6/inflate.c
+*** zlib/inflate.c	2022-08-26 10:49:25.788000000 +0800
+--- zlib_h6/inflate.c	2022-08-26 10:49:16.936000000 +0800
+***************
+*** 101,106 ****
+--- 101,114 ----
+  #endif
+  local unsigned syncsearch OF((unsigned FAR *have, const unsigned char FAR *buf,
+                                unsigned len));
++ 							  
++ #ifdef Z_INFLATE_HOOK
++ local inflate_hook_func z_InflateTaskHook = Z_NULL;
++ void ZEXPORT inflateHookFuncRegister(inflate_hook_func func)
++ {
++     z_InflateTaskHook = func;
++ }
++ #endif
+  
+  local int inflateStateCheck(strm)
+  z_streamp strm;
+***************
+*** 653,659 ****
+      in = have;
+      out = left;
+      ret = Z_OK;
+!     for (;;)
+          switch (state->mode) {
+          case HEAD:
+              if (state->wrap == 0) {
+--- 661,672 ----
+      in = have;
+      out = left;
+      ret = Z_OK;
+!     for (;;) {
+! #ifdef Z_INFLATE_HOOK
+! 		if (z_InflateTaskHook != Z_NULL) {
+! 		    z_InflateTaskHook();
+! 		}
+! #endif
+          switch (state->mode) {
+          case HEAD:
+              if (state->wrap == 0) {
+***************
+*** 1267,1272 ****
+--- 1280,1286 ----
+          default:
+              return Z_STREAM_ERROR;
+          }
++     }
+  
+      /*
+         Return from inflate(), updating the total counts and the check value.
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/zconf.h zlib_h6/zconf.h
+*** zlib/zconf.h	2022-08-26 10:49:25.792000000 +0800
+--- zlib_h6/zconf.h	2022-08-26 10:49:16.940000000 +0800
+***************
+*** 8,13 ****
+--- 8,17 ----
+  #ifndef ZCONF_H
+  #define ZCONF_H
+  
++ #ifdef INFLATE_HOOK  /* may be set to # if 1 by ./configure --inflatehook */
++ #define Z_INFLATE_HOOK
++ #endif
++ 
+  /*
+   * If you *really* need a unique prefix for all types and library functions,
+   * compile with -DZ_PREFIX. The "standard" zlib should be compiled without it.
+***************
+*** 125,130 ****
+--- 129,137 ----
+  #  define inflate_copyright     z_inflate_copyright
+  #  define inflate_fast          z_inflate_fast
+  #  define inflate_table         z_inflate_table
++ #  ifdef Z_INFLATE_HOOK
++ #    define inflateHookFuncRegister          z_inflateHookFuncRegister
++ #  endif
+  #  ifndef Z_SOLO
+  #    define uncompress            z_uncompress
+  #    define uncompress2           z_uncompress2
+***************
+*** 163,168 ****
+--- 170,177 ----
+  #  define gz_header_s           z_gz_header_s
+  #  define internal_state        z_internal_state
+  
++ /* variable from zutil.h */
++ #  define z_errmsg              z_z_errmsg
+  #endif
+  
+  #if defined(__MSDOS__) && !defined(MSDOS)
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/zconf.h.cmakein zlib_h6/zconf.h.cmakein
+*** zlib/zconf.h.cmakein	2022-08-26 10:49:25.792000000 +0800
+--- zlib_h6/zconf.h.cmakein	2022-08-26 10:49:16.940000000 +0800
+***************
+*** 9,14 ****
+--- 9,15 ----
+  #define ZCONF_H
+  #cmakedefine Z_PREFIX
+  #cmakedefine Z_HAVE_UNISTD_H
++ #cmakedefine Z_INFLATE_HOOK
+  
+  /*
+   * If you *really* need a unique prefix for all types and library functions,
+***************
+*** 127,132 ****
+--- 128,136 ----
+  #  define inflate_copyright     z_inflate_copyright
+  #  define inflate_fast          z_inflate_fast
+  #  define inflate_table         z_inflate_table
++ #  ifdef Z_INFLATE_HOOK
++ #    define inflateHookFuncRegister          z_inflateHookFuncRegister
++ #  endif
+  #  ifndef Z_SOLO
+  #    define uncompress            z_uncompress
+  #    define uncompress2           z_uncompress2
+***************
+*** 165,170 ****
+--- 169,176 ----
+  #  define gz_header_s           z_gz_header_s
+  #  define internal_state        z_internal_state
+  
++ /* variable from zutil.h */
++ #  define z_errmsg              z_z_errmsg
+  #endif
+  
+  #if defined(__MSDOS__) && !defined(MSDOS)
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/zconf.h.in zlib_h6/zconf.h.in
+*** zlib/zconf.h.in	2022-08-26 10:49:25.792000000 +0800
+--- zlib_h6/zconf.h.in	2022-08-26 10:49:16.940000000 +0800
+***************
+*** 8,13 ****
+--- 8,17 ----
+  #ifndef ZCONF_H
+  #define ZCONF_H
+  
++ #ifdef INFLATE_HOOK  /* may be set to # if 1 by ./configure --inflatehook */
++ #define Z_INFLATE_HOOK
++ #endif
++ 
+  /*
+   * If you *really* need a unique prefix for all types and library functions,
+   * compile with -DZ_PREFIX. The "standard" zlib should be compiled without it.
+***************
+*** 125,130 ****
+--- 129,137 ----
+  #  define inflate_copyright     z_inflate_copyright
+  #  define inflate_fast          z_inflate_fast
+  #  define inflate_table         z_inflate_table
++ #  ifdef Z_INFLATE_HOOK
++ #    define inflateHookFuncRegister          z_inflateHookFuncRegister
++ #  endif
+  #  ifndef Z_SOLO
+  #    define uncompress            z_uncompress
+  #    define uncompress2           z_uncompress2
+***************
+*** 163,168 ****
+--- 170,177 ----
+  #  define gz_header_s           z_gz_header_s
+  #  define internal_state        z_internal_state
+  
++ /* variable from zutil.h */
++ #  define z_errmsg              z_z_errmsg
+  #endif
+  
+  #if defined(__MSDOS__) && !defined(MSDOS)
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/zlib.h zlib_h6/zlib.h
+*** zlib/zlib.h	2022-08-26 10:49:25.796000000 +0800
+--- zlib_h6/zlib.h	2022-08-26 10:49:16.940000000 +0800
+***************
+*** 217,222 ****
+--- 217,227 ----
+  
+                          /* basic functions */
+  
++ #ifdef Z_INFLATE_HOOK
++ typedef void (*inflate_hook_func)(void);
++ ZEXTERN void ZEXPORT inflateHookFuncRegister(inflate_hook_func func);
++ #endif
++ 
+  ZEXTERN const char * ZEXPORT zlibVersion OF((void));
+  /* The application can compare zlibVersion and ZLIB_VERSION for consistency.
+     If the first character differs, the library code actually used is not
+diff -crN '--exclude=.git' '--exclude=.gitee' '--exclude=.vscode' zlib/zutil.h zlib_h6/zutil.h
+*** zlib/zutil.h	2022-08-26 10:49:25.796000000 +0800
+--- zlib_h6/zutil.h	2022-08-26 10:49:16.940000000 +0800
+***************
+*** 193,198 ****
+--- 193,199 ----
+      (!defined(_LARGEFILE64_SOURCE) || _LFS64_LARGEFILE-0 == 0)
+      ZEXTERN uLong ZEXPORT adler32_combine64 OF((uLong, uLong, z_off_t));
+      ZEXTERN uLong ZEXPORT crc32_combine64 OF((uLong, uLong, z_off_t));
++     ZEXTERN uLong ZEXPORT crc32_combine_gen64 OF((z_off_t));
+  #endif
+  
+          /* common defaults */

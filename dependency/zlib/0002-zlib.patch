@@ -1,0 +1,22 @@
+From dcedd0810b00ba065de07386bc270eea57aa157a Mon Sep 17 00:00:00 2001
+From: yuangongji 00362270 <yuangongji1@huawei.com>
+Date: Tue, 20 Oct 2020 17:24:41 +0800
+Subject: [PATCH 2/3] [Huawei] add release file for h1
+
+Offering: Open Source Competence Center
+---
+ HUAWEI-RELEASE | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 HUAWEI-RELEASE
+
+diff --git a/HUAWEI-RELEASE b/HUAWEI-RELEASE
+new file mode 100644
+index 0000000..787b9cc
+--- /dev/null
++++ b/HUAWEI-RELEASE
+@@ -0,0 +1 @@
++RELEASE: h1
+\ No newline at end of file
+-- 
+2.23.0
+

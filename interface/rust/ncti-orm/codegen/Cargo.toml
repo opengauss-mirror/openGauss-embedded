@@ -1,0 +1,16 @@
+[package]
+name = "codegen"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rbs = { version = "0.1.0", path = "../rbs" }
+syn = "1.0"
+quote = "1.0"
+regex = "1"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+fastdate = { version = "0.1"}
+deadpool = {version="0.9.5", features = ["managed"] }

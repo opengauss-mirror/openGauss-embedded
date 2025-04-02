@@ -1,0 +1,2 @@
+const char* GIT_VERSION = "@git_version@";
+const char* GIT_COMMIT_ID = "@git_commit_id@";

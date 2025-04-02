@@ -1,0 +1,127 @@
+/*
+ * Copyright (c) GBA-NCTI-ISDC. 2022-2024.
+ *
+ * openGauss embedded is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *
+ * http://license.coscl.org.cn/MulanPSL2
+ *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FITFOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+ * -------------------------------------------------------------------------
+ *
+ * multiply.cpp
+ *
+ * IDENTIFICATION
+ * openGauss-embedded/src/compute/sql/function/math/multiply.cpp
+ *
+ * -------------------------------------------------------------------------
+ */
+
+#include "function/math/multiply.h"
+
+#include "type/operator/decimal_cast.h"
+#include "type/operator/mul_operator.h"
+#include "type/type_id.h"
+#include "type/value.h"
+
+namespace intarkdb {
+
+auto MultiplySet::Register(FunctionContext& context) -> void {
+    context.RegisterFunction("*", {{GS_TYPE_TINYINT, GS_TYPE_TINYINT}, GS_TYPE_TINYINT},
+                             [](const std::vector<Value>& args) {
+                                 return ValueFactory::ValueTinyInt(MultiplyOp::Operation<int8_t, int8_t, int8_t>(
+                                     args[0].GetCastAs<int8_t>(), args[1].GetCastAs<int8_t>()));
+                             });
+    context.RegisterFunction("*", {{GS_TYPE_SMALLINT, GS_TYPE_SMALLINT}, GS_TYPE_SMALLINT},
+                             [](const std::vector<Value>& args) {
+                                 return ValueFactory::ValueSmallInt(MultiplyOp::Operation<int16_t, int16_t, int16_t>(
+                                     args[0].GetCastAs<int16_t>(), args[1].GetCastAs<int16_t>()));
+                             });
+    context.RegisterFunction("*", {{GS_TYPE_INTEGER, GS_TYPE_INTEGER}, GS_TYPE_INTEGER},
+                             [](const std::vector<Value>& args) {
+                                 return ValueFactory::ValueInt(MultiplyOp::Operation<int32_t, int32_t, int32_t>(
+                                     args[0].GetCastAs<int32_t>(), args[1].GetCastAs<int32_t>()));
+                             });
+    context.RegisterFunction("*", {{GS_TYPE_BIGINT, GS_TYPE_BIGINT}, GS_TYPE_BIGINT},
+                             [](const std::vector<Value>& args) {
+                                 return ValueFactory::ValueBigInt(MultiplyOp::Operation<int64_t, int64_t, int64_t>(
+                                     args[0].GetCastAs<int64_t>(), args[1].GetCastAs<int64_t>()));
+                             });
+    context.RegisterFunction(
+        "*", {{GS_TYPE_UTINYINT, GS_TYPE_UTINYINT}, GS_TYPE_UTINYINT}, [](const std::vector<Value>& args) {
+            return ValueFactory::ValueUnsignTinyInt(MultiplyOp::Operation<uint8_t, uint8_t, uint8_t>(
+                args[0].GetCastAs<uint8_t>(), args[1].GetCastAs<uint8_t>()));
+        });
+    context.RegisterFunction(
+        "*", {{GS_TYPE_USMALLINT, GS_TYPE_USMALLINT}, GS_TYPE_USMALLINT}, [](const std::vector<Value>& args) {
+            return ValueFactory::ValueUnsignSmallInt(MultiplyOp::Operation<uint16_t, uint16_t, uint16_t>(
+                args[0].GetCastAs<uint16_t>(), args[1].GetCastAs<uint16_t>()));
+        });
+    context.RegisterFunction(
+        "*", {{GS_TYPE_UINT32, GS_TYPE_UINT32}, GS_TYPE_UINT32}, [](const std::vector<Value>& args) {
+            return ValueFactory::ValueUnsignInt(MultiplyOp::Operation<uint32_t, uint32_t, uint32_t>(
+                args[0].GetCastAs<uint32_t>(), args[1].GetCastAs<uint32_t>()));
+        });
+    context.RegisterFunction(
+        "*", {{GS_TYPE_UINT64, GS_TYPE_UINT64}, GS_TYPE_UINT64}, [](const std::vector<Value>& args) {
+            return ValueFactory::ValueUnsignBigInt(MultiplyOp::Operation<uint64_t, uint64_t, uint64_t>(
+                args[0].GetCastAs<uint64_t>(), args[1].GetCastAs<uint64_t>()));
+        });
+    context.RegisterFunction("*", {{GS_TYPE_HUGEINT, GS_TYPE_HUGEINT}, GS_TYPE_HUGEINT},
+                             [](const std::vector<Value>& args) {
+                                 return ValueFactory::ValueHugeInt(MultiplyOp::Operation<hugeint_t, hugeint_t, hugeint_t>(
+                                     args[0].GetCastAs<hugeint_t>(), args[1].GetCastAs<hugeint_t>()));
+                             });
+    context.RegisterFunction(
+        "*",
+        {{GS_TYPE_DECIMAL, GS_TYPE_DECIMAL},
+         GS_TYPE_DECIMAL,
+         [](const std::vector<LogicalType>& types) {
+             if (types[0].TypeId() == GS_TYPE_PARAM || types[1].TypeId() == GS_TYPE_PARAM) {
+                 return types[0].TypeId() == GS_TYPE_PARAM ? types[1] : types[0];
+             }
+             auto left = types[0].ToDeicmalType();
+             auto right = types[1].ToDeicmalType();
+             return GetMulDecimalType(left, right);
+         }},
+        [](const std::vector<Value>& args) {
+            LogicalType left = args[0].GetLogicalType();
+            LogicalType right = args[1].GetLogicalType();
+            if (!intarkdb::IsDecimal(left.TypeId())) {
+                if (!intarkdb::IsFloat(left.TypeId())) {  // real or float
+                    left = left.ToDeicmalType();
+                } else {
+                    left = GS_TYPE_UNKNOWN;
+                }
+            }
+            if (!intarkdb::IsDecimal(right.TypeId())) {
+                if (!intarkdb::IsFloat(right.TypeId())) {
+                    right = right.ToDeicmalType();
+                } else {
+                    right = GS_TYPE_UNKNOWN;
+                }
+            }
+
+            LogicalType result_type;
+            if (left.TypeId() == GS_TYPE_UNKNOWN || right.TypeId() == GS_TYPE_UNKNOWN) {
+                // one of the type is decimal
+                result_type =
+                    left.TypeId() == GS_TYPE_UNKNOWN ? GetMulDecimalType(right, right) : GetMulDecimalType(left, left);
+            } else {
+                result_type = GetMulDecimalType(left, right);
+            }
+            auto result =
+                MultiplyOp::Operation<dec4_t, dec4_t, dec4_t>(args[0].GetCastAs<dec4_t>(), args[1].GetCastAs<dec4_t>());
+            result = DecimalCast::Operation<dec4_t>(result, result_type.Scale(), result_type.Precision());
+            return ValueFactory::ValueDecimal(result, result_type.Precision(), result_type.Scale());
+        });
+    context.RegisterFunction("*", {{GS_TYPE_REAL, GS_TYPE_REAL}, GS_TYPE_REAL}, [](const std::vector<Value>& args) {
+        return ValueFactory::ValueDouble(
+            MultiplyOp::Operation<double, double, double>(args[0].GetCastAs<double>(), args[1].GetCastAs<double>()));
+    });
+}
+}  // namespace intarkdb

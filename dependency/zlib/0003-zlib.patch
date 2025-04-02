@@ -1,0 +1,63 @@
+From 466c5b509e668e5d211e919ef6d1fc360e4269f4 Mon Sep 17 00:00:00 2001
+From: xukunpeng <xukunpeng2@huawei.com>
+Date: Tue, 13 Apr 2021 11:06:05 +0800
+Subject: [PATCH 3/3] [Huawei]patch to zlib
+
+Offering: GaussDB Kernel
+
+More detail: patch huawei_unzip_alloc_hook.patch and huawei_unzip_alloc_hook.patch2
+
+Signed-off-by: xukunpeng xukunpeng2@huawei.com
+---
+ contrib/minizip/unzip.c | 10 ++++++++++
+ contrib/minizip/unzip.h | 13 +++++++++++++
+ 2 files changed, 23 insertions(+)
+
+diff --git a/contrib/minizip/unzip.c b/contrib/minizip/unzip.c
+index bcfb941..a321034 100644
+--- a/contrib/minizip/unzip.c
++++ b/contrib/minizip/unzip.c
+@@ -108,6 +108,16 @@
+ #define UNZ_MAXFILENAMEINZIP (256)
+ #endif
+ 
++static unz_memfunc g_unz_memapi = {0, 0};
++
++extern int ZEXPORT unz_set_memfuncs(const unz_memfunc* memfunc)
++{
++	g_unz_memapi = *memfunc;
++}
++
++#define ALLOC(size)  ((*(g_unz_memapi.m_malloc))(size))
++#define TRYFREE(p)   { if (p) { (*(g_unz_memapi.m_free))(p); p = NULL; } }
++
+ #ifndef ALLOC
+ # define ALLOC(size) (malloc(size))
+ #endif
+diff --git a/contrib/minizip/unzip.h b/contrib/minizip/unzip.h
+index 2104e39..06eb49c 100644
+--- a/contrib/minizip/unzip.h
++++ b/contrib/minizip/unzip.h
+@@ -429,6 +429,19 @@ extern int ZEXPORT unzSetOffset64 (unzFile file, ZPOS64_T pos);
+ extern int ZEXPORT unzSetOffset (unzFile file, uLong pos);
+ 
+ 
++/* memory manager api */
++typedef voidp (* malloc_pf) (size_t);
++typedef void  (* free_pf) (voidp);
++
++typedef struct unz_memfunc_s
++{
++	malloc_pf  m_malloc;
++	free_pf    m_free;
++} unz_memfunc;
++
++extern int ZEXPORT unz_set_memfuncs OF ((const unz_memfunc* memfunc));
++
++
+ 
+ #ifdef __cplusplus
+ }
+-- 
+2.23.0
+

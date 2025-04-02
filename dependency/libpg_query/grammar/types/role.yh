@@ -1,0 +1,26 @@
+%type <str>		RoleId
+%type <list>	OptRoleList AlterOptRoleList
+%type <defelt>	CreateOptRoleElem AlterOptRoleElem
+%type <list> role_list
+
+%type <rolespec> RoleSpec opt_granted_by
+
+%type <str>		opt_in_database
+
+%type <vsetstmt> SetResetClause
+
+
+%type <boolean>	opt_grant_grant_option
+
+%type <list>	grant_role_opt_list
+%type <defelt>	grant_role_opt
+%type <node>	grant_role_opt_value
+
+%type <rolespec> grantee
+%type <list>	grantee_list
+%type <accesspriv> privilege
+%type <list>	privileges privilege_list
+%type <privtarget> privilege_target
+
+%type <str>		parameter_name
+%type <list>	parameter_name_list

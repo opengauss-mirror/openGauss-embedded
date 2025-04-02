@@ -1,0 +1,18 @@
+[package]
+name = "macro_driver"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+proc-macro = true
+[dependencies]
+proc-macro2 = "1.0"
+codegen = { version = "0.1.0", path = "../codegen"}
+interface = { version = "0.1.0", path = "../interface"}
+quote = "1.0"
+regex = "1"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+syn = { version = "1.0", features = ["full"] }
+

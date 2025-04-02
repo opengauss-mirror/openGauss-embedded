@@ -1,0 +1,10 @@
+--- lz4hc.c	2019-12-12 15:28:42.669000000 +0800
++++ lz4hc.c.new	2019-12-12 15:27:38.604000000 +0800
+@@ -921,6 +921,7 @@
+ {
+ #if defined(LZ4HC_HEAPMODE) && LZ4HC_HEAPMODE==1
+     LZ4_streamHC_t* const statePtr = (LZ4_streamHC_t*)ALLOC(sizeof(LZ4_streamHC_t));
++    if (statePtr == NULL) return 0;
+ #else
+     LZ4_streamHC_t state;
+     LZ4_streamHC_t* const statePtr = &state;
