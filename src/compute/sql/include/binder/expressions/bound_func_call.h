@@ -28,27 +28,27 @@
 #include "binder/bound_expression.h"
 #include "function/sql_function.h"
 
-class BoundFuncCall : public BoundExpression {
+class BoundFuncExpr : public BoundExpression {
    public:
     // single argument
-    explicit BoundFuncCall(const char* func_name, std::unique_ptr<BoundExpression> arg)
-        : BoundExpression(ExpressionType::FUNC_CALL), func_name_(func_name) {
-        args_.push_back(std::move(arg));
+    explicit BoundFuncExpr(const char* func_name, std::unique_ptr<BoundExpression> arg)
+        : BoundExpression(ExpressionType::FUNC_CALL), funcname(func_name) {
+        args.push_back(std::move(arg));
     }
     // two arguments 
-    explicit BoundFuncCall(const char* func_name,std::unique_ptr<BoundExpression> arg1,std::unique_ptr<BoundExpression> arg2)
-        : BoundExpression(ExpressionType::FUNC_CALL), func_name_(func_name) {
-        args_.push_back(std::move(arg1));
-        args_.push_back(std::move(arg2));
+    explicit BoundFuncExpr(const char* func_name,std::unique_ptr<BoundExpression> arg1,std::unique_ptr<BoundExpression> arg2)
+        : BoundExpression(ExpressionType::FUNC_CALL), funcname(func_name) {
+        args.push_back(std::move(arg1));
+        args.push_back(std::move(arg2));
     }
     // multiple arguments 
-    explicit BoundFuncCall(std::string func_name, std::vector<std::unique_ptr<BoundExpression>> args)
-        : BoundExpression(ExpressionType::FUNC_CALL), func_name_(std::move(func_name)), args_(std::move(args)) {}
+    explicit BoundFuncExpr(const char* func_name, std::vector<std::unique_ptr<BoundExpression>> in_args)
+        : BoundExpression(ExpressionType::FUNC_CALL), funcname(func_name), args(std::move(in_args)) {}
 
-    auto ToString() const -> std::string override { return fmt::format("{}({})", func_name_, args_); }
+    auto ToString() const -> std::string override { return args.size()==0 ? fmt::format("{}()", funcname) : fmt::format("{}({})", funcname, args); }
 
     auto HasAggregation() const -> bool override {
-        for (auto& arg : args_) {
+        for (auto& arg : args) {
             if (arg->HasAggregation()) {
                 return true;
             }
@@ -57,7 +57,7 @@ class BoundFuncCall : public BoundExpression {
     }
 
     auto HasSubQuery() const -> bool override {
-        for (auto& arg : args_) {
+        for (auto& arg : args) {
             if (arg->HasSubQuery()) {
                 return true;
             }
@@ -66,7 +66,7 @@ class BoundFuncCall : public BoundExpression {
     }
 
     auto HasParameter() const -> bool override {
-        for (auto& arg : args_) {
+        for (auto& arg : args) {
             if (arg->HasParameter()) {
                 return true;
             }
@@ -75,7 +75,7 @@ class BoundFuncCall : public BoundExpression {
     }
 
     auto HasWindow() const -> bool override {
-        for (auto& arg : args_) {
+        for (auto& arg : args) {
             if (arg->HasWindow()) {
                 return true;
             }
@@ -84,8 +84,8 @@ class BoundFuncCall : public BoundExpression {
     }
 
     virtual hash_t Hash() const override {
-        hash_t h = HashUtil::HashBytes(func_name_.c_str(), func_name_.length());
-        for (auto& arg : args_) {
+        hash_t h = HashUtil::HashBytes(funcname.c_str(), funcname.length());
+        for (auto& arg : args) {
             h = HashUtil::CombineHash(h, arg->Hash());
         }
         return h;
@@ -96,12 +96,12 @@ class BoundFuncCall : public BoundExpression {
         if (other.Type() != ExpressionType::FUNC_CALL) {
             return false;
         }
-        const auto& func_call = static_cast<const BoundFuncCall&>(other);
-        if (func_name_ != func_call.func_name_ || args_.size() != func_call.args_.size()) {
+        const auto& func_call = static_cast<const BoundFuncExpr&>(other);
+        if (funcname != func_call.funcname || args.size() != func_call.args.size()) {
             return false;
         }
-        for (size_t i = 0; i < args_.size(); ++i) {
-            if (!args_[i]->Equals(*func_call.args_[i])) {
+        for (size_t i = 0; i < args.size(); ++i) {
+            if (!args[i]->Equals(*func_call.args[i])) {
                 return false;
             }
         }
@@ -110,25 +110,23 @@ class BoundFuncCall : public BoundExpression {
 
     // copy
     virtual std::unique_ptr<BoundExpression> Copy() const override {
-        std::vector<std::unique_ptr<BoundExpression>> args;
-        args.reserve(args_.size());
-        for (auto& arg : args_) {
-            args.push_back(arg->Copy());
+        std::vector<std::unique_ptr<BoundExpression>> new_args;
+        new_args.reserve(args.size());
+        for (auto& arg : args) {
+            new_args.push_back(arg->Copy());
         }
-        return std::make_unique<BoundFuncCall>(func_name_, std::move(args));
+        return std::make_unique<BoundFuncExpr>(funcname.c_str(), std::move(new_args));
     }
 
     virtual LogicalType ReturnType() const override {
-        auto func_iter = SQLFunction::FUNC_MAP.find(func_name_);
+        auto func_iter = SQLFunction::FUNC_MAP.find(funcname);
         if (func_iter != SQLFunction::FUNC_MAP.end()) {
             return func_iter->second.return_type;
         }
         return intarkdb::NewLogicalType(GS_TYPE_NULL);
     }
 
-    /** Function name. */
-    std::string func_name_;
+    std::string funcname;
 
-    /** Arguments of the func call. */
-    std::vector<std::unique_ptr<BoundExpression>> args_;
+    std::vector<std::unique_ptr<BoundExpression>> args;
 };

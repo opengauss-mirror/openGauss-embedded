@@ -235,6 +235,90 @@ JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1stop_1rem
 
 JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1delete_1databse(JNIEnv *env, jclass cls,
                                                                                        jstring dbname);
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_open_kv
+ * Signature: (Ljava/lang/String;Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1open_1kv(JNIEnv *, jclass, jstring, jobject);
+
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_close_kv
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1close_1kv(JNIEnv *, jclass, jobject);
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_connect_kv
+ * Signature: (Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1connect_1kv(JNIEnv *, jclass, jobject, jobject);
+
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_disconnect_kv
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1disconnect_1kv(JNIEnv *, jclass, jobject);
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_set
+ * Signature: (Ljava/nio/ByteBuffer;Ljava/lang/String;Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1set(JNIEnv *env, jclass cls,
+                                                                             jobject connection, jstring key,
+                                                                             jstring val);
+
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_get
+ * Signature: (Ljava/nio/ByteBuffer;Ljava/lang/String;Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jstring JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1get(JNIEnv *env, jclass cls,
+                                                                             jobject connection, jstring key);
+
+
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_del
+ * Signature: (Ljava/nio/ByteBuffer;Ljava/lang/String;Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1del(JNIEnv *env, jclass cls,
+                                                                             jobject connection, jstring key);
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_begin
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1begin(JNIEnv *env, jclass cls,
+                                                                                  jobject conn);
+
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_commit
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1commit(JNIEnv *env, jclass cls,
+                                                                                  jobject conn);
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_rollback
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1rollback(JNIEnv *env, jclass cls,
+                                                                                  jobject conn);
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -68,11 +68,11 @@ static Value MatchFunc(TableDataSource& source, const std::string& func_name) {
         val = ValueFactory::ValueBigInt(source.SeqNextValue(seq_name));
     } else {                             // 无参数函数
         std::string raw_func_name = "";  // 只支持下面的函数
-        if (func_name == "now([])") {
+        if (func_name == "now()") {
             raw_func_name = "now";
-        } else if (func_name == "current_date([])") {
+        } else if (func_name == "current_date()") {
             raw_func_name = "current_date";
-        } else if (func_name == "random([])") {
+        } else if (func_name == "random()") {
             raw_func_name = "random";
         } else {
             throw intarkdb::Exception(ExceptionType::EXECUTOR,

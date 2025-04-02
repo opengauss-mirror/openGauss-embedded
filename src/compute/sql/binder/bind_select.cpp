@@ -78,12 +78,12 @@ auto Binder::BindSelectNoSetOp(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std:
         select_stmt->table_ref = BindValueList(pg_stmt->valuesLists, select_stmt->select_expr_list);
     } else {
         // 绑定 from 子句
-        select_stmt->table_ref = BindFrom(pg_stmt->fromClause);
+        select_stmt->table_ref = BindFromClause(pg_stmt->fromClause);
         if (!pg_stmt->targetList) {
             throw intarkdb::Exception(ExceptionType::BINDER, "no select list");
         }
         // 绑定 select 列
-        select_stmt->select_expr_list = BindSelectList(pg_stmt->targetList);
+        select_stmt->select_expr_list = BindSelectListExprs(pg_stmt->targetList);
     }
 
     BindDistinctOnList(*select_stmt, pg_stmt->distinctClause);
@@ -99,13 +99,13 @@ auto Binder::BindSelectNoSetOp(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std:
     }
 
     // 绑定 where 子句
-    select_stmt->where_clause = BindWhere(pg_stmt->whereClause);
+    select_stmt->where_clause = BindWhereClause(pg_stmt->whereClause);
     // group by
-    select_stmt->group_by_clause = BindGroupBy(pg_stmt->groupClause);
+    select_stmt->group_by_clause = BindGroupByClause(pg_stmt->groupClause);
     // Bind HAVING clause.
-    select_stmt->having_clause = BindHaving(pg_stmt->havingClause);
+    select_stmt->having_clause = BindHavingClause(pg_stmt->havingClause);
     // Bind LIMIT clause.
-    select_stmt->limit_clause = BindLimit(pg_stmt->limitCount, pg_stmt->limitOffset);
+    select_stmt->limit_clause = BindLimitClause(pg_stmt->limitCount, pg_stmt->limitOffset);
     // Bind ORDER BY clause.
     select_stmt->sort_items = BindSortItems(pg_stmt->sortClause, select_stmt->select_expr_list);
     // Bind LockingClause
@@ -171,8 +171,8 @@ auto Binder::BindSelectSetOp(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::u
     auto select_stmt = std::make_unique<SelectStatement>();
     Binder left_binder(this);
     Binder right_binder(this);
-    select_stmt->larg = left_binder.BindSelect(pg_stmt->larg);
-    select_stmt->rarg = right_binder.BindSelect(pg_stmt->rarg);
+    select_stmt->larg = left_binder.BindSelectStmt(pg_stmt->larg);
+    select_stmt->rarg = right_binder.BindSelectStmt(pg_stmt->rarg);
 
     if (select_stmt->larg->select_expr_list.size() != select_stmt->rarg->select_expr_list.size()) {
         throw intarkdb::Exception(ExceptionType::BINDER,
@@ -218,7 +218,7 @@ auto Binder::BindSelectSetOp(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::u
         }
     }
 
-    select_stmt->limit_clause = BindLimit(pg_stmt->limitCount, pg_stmt->limitOffset);
+    select_stmt->limit_clause = BindLimitClause(pg_stmt->limitCount, pg_stmt->limitOffset);
 
     switch (pg_stmt->op) {
         case duckdb_libpgquery::PG_SETOP_UNION: {
@@ -241,7 +241,7 @@ auto Binder::BindSelectSetOp(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::u
     return select_stmt;
 }
 
-auto Binder::BindSelect(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::unique_ptr<SelectStatement> {
+auto Binder::BindSelectStmt(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::unique_ptr<SelectStatement> {
     // 检查不支持的语法元素
     CheckUnSupportedFeature(*pg_stmt);
 
@@ -295,7 +295,7 @@ auto Binder::BindSortItems(duckdb_libpgquery::PGList *list,
     return sort_items;
 }
 
-auto Binder::BindLimit(duckdb_libpgquery::PGNode *limit, duckdb_libpgquery::PGNode *offset)
+auto Binder::BindLimitClause(duckdb_libpgquery::PGNode *limit, duckdb_libpgquery::PGNode *offset)
     -> std::unique_ptr<LimitClause> {
     std::unique_ptr<LimitClause> limit_clause = nullptr;
     if (limit || offset) {
@@ -326,11 +326,11 @@ auto Binder::BindLimitOffset(duckdb_libpgquery::PGNode *root) -> std::unique_ptr
     return expr;
 }
 
-auto Binder::BindHaving(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression> {
+auto Binder::BindHavingClause(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression> {
     return BindExpression(root, 1);
 }
 
-auto Binder::BindGroupBy(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>> {
+auto Binder::BindGroupByClause(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>> {
     std::vector<std::unique_ptr<BoundExpression>> group_by_list;
     if (list) {
         for (auto node = list->head; node != nullptr; node = lnext(node)) {
@@ -362,7 +362,7 @@ auto Binder::BindGroupByExpression(duckdb_libpgquery::PGNode *node) -> std::uniq
     return expr;
 }
 
-auto Binder::BindWhere(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression> {
+auto Binder::BindWhereClause(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression> {
     auto expr = BindExpression(root, 1);
     if (expr) {
         // where 表达式中含有*，这种情况pg的语法解释不能过滤掉

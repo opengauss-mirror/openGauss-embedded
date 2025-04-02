@@ -137,7 +137,7 @@ std::unique_ptr<PreparedStatement> Connection::Prepare(const std::string& query)
         if (statements.size() > 1) {
             throw std::runtime_error("Cannot prepare multiple statements at once!");
         }
-        auto bound_statement = BindStatement(statements[0], query);
+        auto bound_statement = BindSQLStmt(statements[0], query);
 #ifdef ENABLE_PG_QUERY
         parser_.Clear();
 #endif
@@ -176,11 +176,11 @@ std::vector<ParsedStatement> Connection::ParseStatementsInternal(const std::stri
     return stmts;
 }
 
-std::unique_ptr<BoundStatement> Connection::BindStatement(const ParsedStatement& stmt, const std::string& query) {
+std::unique_ptr<BoundStatement> Connection::BindSQLStmt(const ParsedStatement& stmt, const std::string& query) {
 #ifdef ENABLE_PG_QUERY
     Binder binder = CreateBinder();
     binder.SetUser(user_.GetName());
-    auto statement = binder.BindStatement(stmt.stmt);
+    auto statement = binder.BindSQLStmt(stmt.stmt);
     statement->n_param = binder.ParamCount();
     statement->query = query;
     return statement;
@@ -269,7 +269,7 @@ std::unique_ptr<RecordBatch> Connection::Query(const char* query) {
             throw std::runtime_error("No statement to execute!");
         }
         for (auto& statement : statements) {
-            auto bound_statement = BindStatement(statement, query);
+            auto bound_statement = BindSQLStmt(statement, query);
             result = ExecuteStatement(query, std::move(bound_statement));
         }
     } catch (const std::exception& e) {
@@ -315,7 +315,7 @@ std::unique_ptr<RecordIterator> Connection::QueryIterator(const char* query) {
             throw std::runtime_error("No statement to execute!");
         }
         for (auto& stmt : stmts) {
-            auto bound_stmt = BindStatement(stmt, query);
+            auto bound_stmt = BindSQLStmt(stmt, query);
             if (bound_stmt->Type() == StatementType::SELECT_STATEMENT) {
                 result = ExecuteStatementStreaming(std::move(bound_stmt));
             } else {
@@ -825,6 +825,41 @@ void Connection::ShowCreateTable(ShowStatement& stmt, RecordBatch& rb_out) {
     rb_out.AddRecord(Record(std::move(row_values)));
 }
 
+static inline void ShowPartitionInfo(const exp_table_meta &table_meta, std::stringstream &sschema, std::stringstream &sErr) {
+    sschema << "\n";
+    const exp_part_table_t *part_table = &table_meta.part_table;
+    if (part_table->desc.parttype ==PART_TYPE_RANGE)
+        sschema << "PARTITION BY RANGE(";
+    else if (part_table->desc.parttype == PART_TYPE_LIST)
+        sschema << "PARTITION BY LIST(";
+    else if (part_table->desc.parttype == PART_TYPE_HASH)
+        sschema << "PARTITION BY HASH(";
+    else {
+        sErr << "invalid part type:" << table_meta.part_table.desc.parttype << std::endl;
+        return;
+    }
+    for (uint32 partkey_idx=0; partkey_idx < part_table->desc.partkeys; ++partkey_idx){
+        sschema << std::string(table_meta.columns[part_table->keycols[partkey_idx].column_id].name.str);
+        if (partkey_idx != part_table->desc.partkeys - 1) sschema << ",";
+    }
+    sschema << ") TIMESCALE INTERVAL '" << part_table->desc.interval.str << "' ";
+    if (table_meta.has_retention) {
+        sschema << "RETENTION '";
+        if (table_meta.retention.day>0)
+            sschema << table_meta.retention.day << "d'";
+        else if (table_meta.retention.hour>0)
+            sschema << table_meta.retention.hour << "h'";
+        else {
+            sErr << "invalid part retention" << std::endl;
+            return;
+        }
+    }
+    if (part_table->desc.auto_addpart)
+        sschema << " AUTOPART";
+    if (part_table->desc.is_crosspart)
+        sschema << " CROSSPART ";
+}
+
 std::string Connection::ShowCreateTable(const std::string& table_name, std::vector<std::string>& index_sqls) {
     auto table = GetTableInfo(table_name);
     if (table == nullptr) throw std::runtime_error("table:" + table_name + " not exist");
@@ -841,6 +876,17 @@ std::string Connection::ShowCreateTable(const std::string& table_name, std::vect
                 primary_col_ids.push_back(index.col_ids[j]);
             }
             bIndexSQL = false;
+        }
+
+        // 过滤时序分区表自动创建的分区索引
+        if (table_meta.is_timescale && table_meta.parted && index.col_count == table_meta.part_table.desc.partkeys) {
+            bIndexSQL = false;
+            for (size_t col_idx = 0; col_idx < index.col_count; col_idx++) {
+                if (index.col_ids[col_idx] != table_meta.part_table.keycols[col_idx].column_id) {
+                    bIndexSQL = true;
+                    break;
+                }
+            }
         }
 
         if (bIndexSQL) {
@@ -882,9 +928,13 @@ std::string Connection::ShowCreateTable(const std::string& table_name, std::vect
         if (!column.nullable) sschema << " NOT NULL";
 
         if (column.is_default) {
-            column.crud_value = column.default_val;
-            Value value(column);
-            sschema << " DEFAULT " << value.ToSQLString();
+            DefaultValue* default_value = reinterpret_cast<DefaultValue*>(const_cast<char*>(column.default_val.str));
+            auto value = ShowValue(*default_value, column.col_type);
+            if (default_value->type == DefaultValueType::DEFAULT_VALUE_TYPE_FUNC) {
+                sschema << " DEFAULT " << value.ToString();
+            } else {
+                sschema << " DEFAULT " << value.ToSQLString();
+            }
         }
 
         if (primary_col_ids.size() == 1 && primary_col_ids[0] == i) sschema << " PRIMARY KEY";
@@ -918,12 +968,18 @@ std::string Connection::ShowCreateTable(const std::string& table_name, std::vect
         }
         sschema << ")";
     }
-    if (is_table_comment) {
-        sschema << ") COMMENT " << table_comment;
-        sschema << ";";
-    } else {
-        sschema << ");";
+    sschema << ")";
+    if (table_meta.is_timescale && table_meta.parted) {
+        std::stringstream sErr;
+        ShowPartitionInfo(table_meta, sschema, sErr);
+        if (!sErr.str().empty()) {
+            return sErr.str();
+        }
     }
+    if (is_table_comment) {
+        sschema << " COMMENT " << table_comment;
+    }
+    sschema << ";";
     return sschema.str();
 }
 
@@ -1034,6 +1090,52 @@ std::string GetColString(std::vector<std::string> col_names) {
     }
 
     return result;
+}
+
+static std::string GetSubstring(const std::string& str) {
+    std::string result;
+    auto low_str = intarkdb::StringUtil::Lower(str);
+    size_t pos = low_str.find("where");
+    result = pos == std::string::npos ? str: str.substr(0, pos);
+    return result;
+}
+
+static std::string GetAggSql(const std::string& sql, const std::string& bucket_field) {
+    std::string result;
+    auto low_sql = intarkdb::StringUtil::Lower(sql);
+    size_t pos = low_sql.find("from");
+    size_t pos_start = low_sql.find("where");
+    size_t pos_end = low_sql.find(">");
+    if ((pos == std::string::npos) || (pos_start == std::string::npos) || (pos_end == std::string::npos)) {
+        throw std::runtime_error("illegal aggregation sql!");
+    }
+    constexpr size_t WHERE_LEN = 5; // "where" length
+    std::regex pattern(R"(^\s+|\s+$)");
+    if (low_sql.find("cw_scrap_rate")!= std::string::npos 
+        || low_sql.find("cw_complete_rate")!= std::string::npos) {
+        result = sql;
+    } else {
+        result = sql.substr(0, pos - 1) + ", max(" +
+             std::regex_replace(sql.substr(pos_start + WHERE_LEN, pos_end - pos_start - WHERE_LEN - 1), pattern, "") + ") as " +
+             bucket_field + " " + sql.substr(pos);
+    }
+    return result;
+}
+
+static std::string GetTableName(const std::string& sql) {
+    std::string table_name;
+    auto low_sql = intarkdb::StringUtil::Lower(sql);
+    size_t from_len = 4; // "from" length
+    size_t pos_start = low_sql.find("from");
+    size_t pos_end = low_sql.find("where");
+    if ((pos_start == std::string::npos) || (pos_end == std::string::npos)) {
+        throw std::runtime_error("illegal aggregation sql, no from or no where!");
+    }
+    pos_start += from_len;
+    pos_end -= 1; // remove the space before where
+    std::regex pattern(R"(^\s+|\s+$)");
+    table_name = std::regex_replace(sql.substr(pos_start, pos_end - pos_start), pattern, "");
+    return table_name;
 }
 
 void Connection::Rollback() { gstor_rollback(((db_handle_t*)handle_)->handle); }

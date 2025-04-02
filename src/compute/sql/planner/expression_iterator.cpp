@@ -85,8 +85,8 @@ void ExpressionIterator::EnumerateChildren(
             break;
         }
         case ExpressionType::FUNC_CALL: {
-            auto &fun_call_expr = (BoundFuncCall &)expr;
-            for (auto &arg : fun_call_expr.args_) {
+            auto &fun_call_expr = (BoundFuncExpr &)expr;
+            for (auto &arg : fun_call_expr.args) {
                 callback(arg);
             }
             break;

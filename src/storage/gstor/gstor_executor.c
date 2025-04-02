@@ -1263,7 +1263,7 @@ static status_t gstor_init_default_params(knl_attr_t* attr)
     attr->page_clean_period = DEFAULT_PAGE_CLEAN_PERIOD;
     attr->enable_OSYNC = GS_TRUE;
     attr->enable_logdirectIO = GS_TRUE;
-    attr->enable_fdatasync = GS_TRUE;
+    attr->enable_fdatasync = GS_FALSE;
     attr->undo_auto_shrink = GS_TRUE;
     attr->repl_wait_timeout = DEFAULT_REPL_WAIT_TIMEOUT;
     attr->restore_check_version = GS_TRUE;
@@ -1330,6 +1330,37 @@ static status_t gstor_init_runtime_params(instance_t *cc_instance)
     return cm_alter_config(cc_instance->cc_config, "CONTROL_FILES", control_files, CONFIG_SCOPE_MEMORY, GS_TRUE);
 }
 
+static status_t load_tscagg_switch_param(instance_t *cc_instance, bool32 *enable_ts_cagg)
+{
+    char *value = cm_get_config_value(cc_instance->cc_config, "TS_CAGG_SWITCH_ITEM");
+
+    if (cm_str_equal_ins(value, "TRUE")) {
+        *enable_ts_cagg = GS_TRUE;
+    } else if (cm_str_equal_ins(value, "FALSE")) {
+        *enable_ts_cagg = GS_FALSE;
+    } else {
+        GS_THROW_ERROR(ERR_INVALID_PARAMETER, "TS_CAGG_SWITCH_ITEM");
+        return GS_ERROR;
+    }
+
+    return GS_SUCCESS;
+}
+
+static status_t load_ts_update_switch_param(instance_t *cc_instance, bool32 *enable_ts_update_support)
+{
+    char *value = cm_get_config_value(cc_instance->cc_config, "TS_UPDATE_SUPPORT");
+
+    if (cm_str_equal_ins(value, "TRUE")) {
+        *enable_ts_update_support = GS_TRUE;
+    } else if (cm_str_equal_ins(value, "FALSE")) {
+        *enable_ts_update_support = GS_FALSE;
+    } else {
+        GS_THROW_ERROR(ERR_INVALID_PARAMETER, "TS_UPDATE_SUPPORT");
+        return GS_ERROR;
+    }
+
+    return GS_SUCCESS;
+}
 
 /************************ 
     date: 20241022   
@@ -1476,7 +1507,9 @@ static status_t gstor_load_param_config(instance_t *cc_instance)
         GS_THROW_ERROR(ERR_PARAMETER_OVER_RANGE, "MAX_CONN_NUM", (int64)GS_MIN_CONN_NUM, (int64)GS_MAX_CONN_NUM);
         return GS_ERROR;
     }
-
+    if (load_ts_update_switch_param(cc_instance, &attr->enable_ts_update) != GS_SUCCESS) {
+        return GS_ERROR;
+    }
     // 20241210吴锦锋：增加
     if (load_bool32_param("ENFORCED_IGNORE_ALL_REDO_LOGS", cc_instance, &attr->enforced_ignore_all_redo_logs) != GS_SUCCESS) {
         return GS_ERROR;
@@ -1544,8 +1577,7 @@ static status_t gstor_init_loggers(instance_t *cc_instance)
     MEMS_RETURN_IFERR(strcpy_sp(log_param->instance_name, GS_MAX_NAME_LEN, cc_instance->kernel.instance_name));
 
     log_param->log_backup_file_count = 10;
-    log_param->audit_backup_file_count = 10;
-          
+              
     GS_RETURN_IFERR(knl_param_get_size_uint32(cc_instance->cc_config, "LOG_LEVEL", &(log_param->log_level)));
     GS_RETURN_IFERR(knl_param_get_size_uint32(cc_instance->cc_config, "LOG_FILE_COUNT", 
                                               &(log_param->log_backup_file_count)));
@@ -1589,10 +1621,6 @@ static status_t gstor_init_loggers(instance_t *cc_instance)
     cm_init_error_handler(cm_set_sql_error);
     g_check_file_error = gstor_check_file_errno;
 
-    //todo  audit
-    PRTS_RETURN_IFERR(snprintf_s(file_name, GS_FILE_NAME_BUFFER_SIZE, GS_MAX_FILE_NAME_LEN, "%s/audit/%s",
-        log_param->log_home, "intarkdb_audit.log"));
-    cm_log_init(LOG_AUDIT, file_name);
     return GS_SUCCESS;
 }
 
@@ -1740,9 +1768,14 @@ static inline status_t gstor_open_cursor_internal(knl_session_t *session, knl_cu
         cursor->index_slot = index_slot;
         cursor->scan_mode = SCAN_MODE_INDEX;
     }
+    uint32 cache_is_insert = session->is_insert;
     session->is_insert = action == CURSOR_ACTION_INSERT ? GS_TRUE : GS_FALSE;
     knl_inc_session_ssn(session);
-    return knl_open_cursor(session, cursor, dc);
+    status_t ret = knl_open_cursor(session, cursor, dc);
+    if (ret != GS_SUCCESS) {
+        session->is_insert = cache_is_insert;
+    }
+    return ret;
 }
 
 static inline status_t gstor_set_key(char *key, uint32 key_len, row_assist_t *ra)
@@ -3075,7 +3108,6 @@ int gstor_get_table_info(void *handle, const char *schema_name, const char *tabl
         if (err_info != NULL) {
             err_info->code = GS_ERRNO;
             memcpy_s(err_info->message, GS_MESSAGE_BUFFER_SIZE, g_tls_error.message, GS_MESSAGE_BUFFER_SIZE);
-            GS_LOG_RUN_WAR("gstor_get_table_info err,code:%d,msg:%s\n", err_info->code, err_info->message);
         }
         cm_reset_error();
         return result;
@@ -3786,6 +3818,13 @@ uint32_t gstor_set_max_connections(void *handle, uint32_t max_conn) {
     cm_alter_config(ins->cc_config, "MAX_CONN_NUM", conn_num, CONFIG_SCOPE_BOTH, GS_TRUE);
 
     return ins->kernel.attr.max_conn_num;
+}
+
+
+int32_t get_ts_update_switch_on(void *handle) {
+    knl_session_t *session = EC_SESSION(handle);
+    instance_t *ins = session->kernel->server;    
+    return ins->kernel.attr.enable_ts_update;
 }
 
 // ---------------------------------for user-----------------------------//

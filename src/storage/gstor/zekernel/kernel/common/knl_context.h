@@ -299,6 +299,7 @@ typedef struct st_knl_attr {
     bool32 smon_loop_in_ignore_mode;   // 20241101 吴锦锋   受损文件启动时，让smon线程先进入忽略损坏模式
     uint32 dbwr_fsync_timeout;
     uint32 isolation_level;
+    bool32 enable_ts_update; // 时序表支持update操作开关
 } knl_attr_t;
 
 typedef struct st_sys_name_context {  // for system name

@@ -16,11 +16,11 @@
 * assist.h
 *
 * IDENTIFICATION
-* openGauss-embedded/tools/cli_common/assist.h
+* openGauss-embedded/tools/intarkdb_cli/assist.h
 *
 * -------------------------------------------------------------------------
 */
-//include "interface/sqlite3_api_wrapper/include/sqlite3.h"
+#pragma once
 
 char *find_home_dir(int clearFlag);
 

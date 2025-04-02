@@ -86,7 +86,7 @@ class Binder {
     ~Binder() {}
 
     // 解析 sql query 语句 为 statement序列
-    void ParseAndSave(const std::string &query);
+    void ParseSQL(const std::string &query);
 
     void SaveParseResult(duckdb_libpgquery::PGList *tree);
 
@@ -94,57 +94,54 @@ class Binder {
     void SetUser(std::string user) { user_ = user; }
 
     // bind statement
-    auto BindStatement(duckdb_libpgquery::PGNode *stmt) -> std::unique_ptr<BoundStatement>;
-    auto BindExpression(duckdb_libpgquery::PGNode *node, int depth) -> std::unique_ptr<BoundExpression>;
+    auto BindSQLStmt(duckdb_libpgquery::PGNode *stmt) -> std::unique_ptr<BoundStatement>;
     auto BindColumnRef(duckdb_libpgquery::PGColumnRef *node) -> std::unique_ptr<BoundExpression>;
     auto BindColumnRef(const std::vector<std::string>& col_name,bool root) -> std::unique_ptr<BoundExpression>;
     auto BindColumnRefAlias(const std::vector<std::string>& column_name,const std::unordered_map<std::string, AliasIdx>& alias_binding) -> std::unique_ptr<BoundExpression>;
     auto BindCorrelatedColumn(const std::vector<std::string>& col_name , Binder* binder,BinderContext& ctx,bool root) -> std::unique_ptr<BoundExpression>;
 
-    auto BindColumnDefinition(duckdb_libpgquery::PGColumnDef &cdef, uint16_t slot, std::vector<Constraint> &constraints)
+    auto BindColumnWtihDef(duckdb_libpgquery::PGColumnDef &cdef, uint16_t slot, std::vector<Constraint> &constraints)
         -> Column;
     auto BindCreateColumnList(duckdb_libpgquery::PGList *tableElts, const std::string &table_name,
                               std::vector<Column> &columns, std::vector<Constraint> &constraints) -> void;
 
-    auto BindCreate(duckdb_libpgquery::PGCreateStmt *pg_stmt) -> std::unique_ptr<CreateStatement>;
+    auto BindCreateStmt(duckdb_libpgquery::PGCreateStmt *pg_stmt) -> std::unique_ptr<CreateStatement>;
     auto BindCreateIndex(duckdb_libpgquery::PGIndexStmt *pg_stmt) -> std::unique_ptr<CreateIndexStatement>;
-    auto BindSelect(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::unique_ptr<SelectStatement>;
+    auto BindSelectStmt(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::unique_ptr<SelectStatement>;
     auto BindSelectNoSetOp(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::unique_ptr<SelectStatement>;
     auto BindSelectSetOp(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::unique_ptr<SelectStatement>;
 
     auto BindDistinctOnList(SelectStatement &stmt, duckdb_libpgquery::PGList *distinct_clause) -> void;
-    auto BindFrom(duckdb_libpgquery::PGList *list) -> std::unique_ptr<BoundTableRef>;
+    auto BindFromClause(duckdb_libpgquery::PGList *list) -> std::unique_ptr<BoundTableRef>;
     auto BindTableRef(const duckdb_libpgquery::PGNode &node) -> std::unique_ptr<BoundTableRef>;
-    auto BindRangeVar(const duckdb_libpgquery::PGRangeVar &table_ref, bool is_select = true)
+    auto BindRangeVarTableRef(const duckdb_libpgquery::PGRangeVar &table_ref, bool is_select = true)
         -> std::unique_ptr<BoundTableRef>;
-    auto BindJoin(const duckdb_libpgquery::PGJoinExpr &node) -> std::unique_ptr<BoundTableRef>;
-    auto BindRangeSubselect(const duckdb_libpgquery::PGRangeSubselect &node) -> std::unique_ptr<BoundTableRef>;
+    auto BindJoinTableRef(const duckdb_libpgquery::PGJoinExpr &node) -> std::unique_ptr<BoundTableRef>;
+    auto BindRangeSubselectTableRef(const duckdb_libpgquery::PGRangeSubselect &node) -> std::unique_ptr<BoundTableRef>;
     auto BindBaseTableRef(const std::string &schema_name, const std::string &table_name,
                           std::optional<std::string> &&alias, bool if_exists = false)
         -> std::unique_ptr<BoundBaseTable>;
     auto BindValueList(duckdb_libpgquery::PGList *list, std::vector<std::unique_ptr<BoundExpression>> &select_list)
         -> std::unique_ptr<BoundTableRef>;
-    auto BindSubquery(duckdb_libpgquery::PGSelectStmt *node, const std::string &alias)
+    auto BindSubqueryTableRef(duckdb_libpgquery::PGSelectStmt *node, const std::string &sub_query_alias)
         -> std::unique_ptr<BoundSubquery>;
 
     auto BindTableAllColumns(const std::string &table_name) -> std::vector<std::unique_ptr<BoundExpression>>;
-    auto BindSelectList(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>>;
-    auto BindAllColumns(const char *expect_relation_name) -> std::vector<std::unique_ptr<BoundExpression>>;
-    auto BindResTarget(duckdb_libpgquery::PGResTarget *root, int depth) -> std::unique_ptr<BoundExpression>;
-    auto BindStar(duckdb_libpgquery::PGAStar *node) -> std::unique_ptr<BoundExpression>;
+    auto BindSelectListExprs(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>>;
+    auto BindAllColumnRefs(const char *expect_relation_name) -> std::vector<std::unique_ptr<BoundExpression>>;
+    auto BindExprResTarget(duckdb_libpgquery::PGResTarget *root, int depth) -> std::unique_ptr<BoundExpression>;
+    auto BindStarExpr(duckdb_libpgquery::PGAStar *node) -> std::unique_ptr<BoundExpression>;
     auto BindColumnRefFromTableBinding(const std::vector<std::string> &col_name, bool root = true)
         -> std::unique_ptr<BoundExpression>;
 
-    auto BindWhere(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>;
-    auto BindAExpr(duckdb_libpgquery::PGAExpr *root, int depth) -> std::unique_ptr<BoundExpression>;
-    auto BindInExpr(duckdb_libpgquery::PGAExpr *root, int depth) -> std::unique_ptr<BoundExpression>;
+    auto BindWhereClause(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>;
 
     auto BindValue(duckdb_libpgquery::PGValue *node) -> std::unique_ptr<BoundExpression>;
-    auto BindConstant(duckdb_libpgquery::PGAConst *node) -> std::unique_ptr<BoundExpression>;
-    auto BindGroupBy(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>>;
+    auto BindConstanExpr(duckdb_libpgquery::PGAConst *node) -> std::unique_ptr<BoundExpression>;
+    auto BindGroupByClause(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>>;
     auto BindGroupByExpression(duckdb_libpgquery::PGNode *node) -> std::unique_ptr<BoundExpression>;
-    auto BindHaving(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>;
-    auto BindLimit(duckdb_libpgquery::PGNode *limit, duckdb_libpgquery::PGNode *offset) -> std::unique_ptr<LimitClause>;
+    auto BindHavingClause(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>;
+    auto BindLimitClause(duckdb_libpgquery::PGNode *limit, duckdb_libpgquery::PGNode *offset) -> std::unique_ptr<LimitClause>;
     auto BindLimitOffset(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>;
     auto BindLimitCount(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>;
     auto BindSortItems(duckdb_libpgquery::PGList *list, const std::vector<std::unique_ptr<BoundExpression>> &)
@@ -152,7 +149,6 @@ class Binder {
     auto BindSortExpression(duckdb_libpgquery::PGNode *node,
                             const std::vector<std::unique_ptr<BoundExpression>> &select_list)
         -> std::unique_ptr<BoundExpression>;
-    auto BindFuncCall(duckdb_libpgquery::PGFuncCall *root, int depth) -> std::unique_ptr<BoundExpression>;
     auto BindInterval(duckdb_libpgquery::PGIntervalConstant *node) -> std::unique_ptr<BoundExpression>;
     auto BindCase(duckdb_libpgquery::PGCaseExpr *root, int depth) -> std::unique_ptr<BoundExpression>;
 #ifdef ENABLE_PG_QUERY
@@ -160,31 +156,35 @@ class Binder {
 #endif
     auto BindOverClause(const struct duckdb_libpgquery::PGWindowDef& over) -> std::unique_ptr<intarkdb::OverClause>;
 
+    std::unique_ptr<BoundExpression> BindExpression(duckdb_libpgquery::PGNode *node,int depth);
+    std::vector<std::unique_ptr<BoundExpression>> BindExpressionList(duckdb_libpgquery::PGList *list, int depth);
+    std::unique_ptr<BoundExpression> BindAExpr(duckdb_libpgquery::PGAExpr *root, int depth);
+    std::unique_ptr<BoundExpression> BindFuncExpression(duckdb_libpgquery::PGFuncCall *root, int depth);
+
+    auto BindInExpr(duckdb_libpgquery::PGAExpr *root, int depth) -> std::unique_ptr<BoundExpression>;
     auto BindBoolExpr(duckdb_libpgquery::PGBoolExpr *root, int depth) -> std::unique_ptr<BoundExpression>;
-    auto BindExpressionList(duckdb_libpgquery::PGList *list, int depth)
-        -> std::vector<std::unique_ptr<BoundExpression>>;
     auto BindNullTest(duckdb_libpgquery::PGNullTest *root, int depth) -> std::unique_ptr<BoundExpression>;
     auto BindTypeCast(duckdb_libpgquery::PGTypeCast *root, int depth) -> std::unique_ptr<BoundExpression>;
 
     auto BindSubQueryExpr(duckdb_libpgquery::PGSubLink *root) -> std::unique_ptr<BoundExpression>;
 
-    auto BindInsert(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique_ptr<InsertStatement>;
+    auto BindInsertStmt(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique_ptr<InsertStatement>;
 
     auto BindTransaction(duckdb_libpgquery::PGTransactionStmt *pg_stmt) -> std::unique_ptr<TransactionStatement>;
 
-    auto BindDrop(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_ptr<DropStatement>;
+    auto BindDropStmt(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_ptr<DropStatement>;
 
     auto BindSequence(duckdb_libpgquery::PGCreateSeqStmt *stmt) -> std::unique_ptr<CreateSequenceStatement>;
 
-    auto BindDelete(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::unique_ptr<DeleteStatement>;
+    auto BindDeleteStmt(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::unique_ptr<DeleteStatement>;
 
-    auto BindUpdate(duckdb_libpgquery::PGUpdateStmt *stmt) -> std::unique_ptr<UpdateStatement>;
+    auto BindUpdateStmt(duckdb_libpgquery::PGUpdateStmt *stmt) -> std::unique_ptr<UpdateStatement>;
     auto BindUpdateItems(duckdb_libpgquery::PGList *target_list, const BoundBaseTable &table)
         -> std::vector<UpdateSetItem>;
 
     auto BindVariableSet(duckdb_libpgquery::PGVariableSetStmt *stmt) -> std::unique_ptr<SetStatement>;
 
-    static auto NodeTagToString(duckdb_libpgquery::PGNodeTag type) -> std::string;
+    static auto ConvertNodeTagToString(duckdb_libpgquery::PGNodeTag type) -> std::string;
 
     const std::vector<duckdb_libpgquery::PGNode *> &GetStatementNodes() const { return pg_statements_; }
 
@@ -211,7 +211,7 @@ class Binder {
     auto BindShowVariables(const std::string &lname) -> std::unique_ptr<ShowStatement>;
 
     auto BindCtas(duckdb_libpgquery::PGCreateTableAsStmt *stmt) -> std::unique_ptr<CtasStatement>;
-    auto BindCreateView(duckdb_libpgquery::PGViewStmt *stmt) -> std::unique_ptr<CreateViewStatement>;
+    auto BindCreateViewStmt(duckdb_libpgquery::PGViewStmt *stmt) -> std::unique_ptr<CreateViewStatement>;
 
     auto BindCopyOptions(CopyInfo &info, duckdb_libpgquery::PGList *options) -> void;
     auto BindCopy(duckdb_libpgquery::PGCopyStmt *stmt) -> std::unique_ptr<CopyStatement>;
@@ -224,7 +224,7 @@ class Binder {
     auto BindCopyOptionWithNoArg(const std::string &option_name, CopyInfo &info) -> void;
 
     auto BindCheckPoint(duckdb_libpgquery::PGCheckPointStmt *stmt) -> std::unique_ptr<CheckpointStatement>;
-    auto BindExplain(duckdb_libpgquery::PGExplainStmt *stmt) -> std::unique_ptr<ExplainStatement>;
+    auto BindExplainStmt(duckdb_libpgquery::PGExplainStmt *stmt) -> std::unique_ptr<ExplainStatement>;
     auto BindCommentOn(duckdb_libpgquery::PGCommentStmt *stmt) -> std::unique_ptr<CommentStatement>;
     
     auto BindCreateRole(duckdb_libpgquery::PGCreateRoleStmt *stmt) -> std::unique_ptr<CreateRoleStatement>;
@@ -265,6 +265,8 @@ class Binder {
         }
         return parent_binder_->RootBinder();
     }
+
+    auto CheckTablePrivilege(const TableInfo &table_info) -> void;
 
    private:
     const Catalog &catalog_;

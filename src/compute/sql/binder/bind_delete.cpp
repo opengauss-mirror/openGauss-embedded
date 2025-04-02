@@ -25,7 +25,7 @@
 #include "binder/expressions/bound_constant.h"
 #include "common/null_check_ptr.h"
 
-auto Binder::BindDelete(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::unique_ptr<DeleteStatement> {
+auto Binder::BindDeleteStmt(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::unique_ptr<DeleteStatement> {
     auto result = std::make_unique<DeleteStatement>();
     // relation
     std::string schema_name = stmt->relation->schemaname ? std::string(stmt->relation->schemaname) : user_;
@@ -83,7 +83,7 @@ auto Binder::BindDelete(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::unique_pt
     }
 
     // where
-    result->condition = BindWhere(stmt->whereClause);
+    result->condition = BindWhereClause(stmt->whereClause);
 
     return result;
 }

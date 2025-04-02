@@ -549,6 +549,8 @@ int64 gstor_get_sql_engine_memory_limit(void *handle);
 uint32_t gstor_get_max_connections(void *handle);
 uint32_t gstor_set_max_connections(void *handle, uint32_t max_conn);
 
+int32_t get_ts_update_switch_on(void *handle);
+
 bool32 gstor_get_user_id(void *handle, const char *user_name, uint32 *id);
 bool32 gstor_get_role_id(void *handle, const char *role_name, uint32 *id);
 bool32 gstor_verify_user_password(void *handle, const char *user_name, const char *password);

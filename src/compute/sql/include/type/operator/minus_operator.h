@@ -38,8 +38,11 @@ struct TryMinusOpWithOverflowCheck {
     template <typename T>
     static inline bool Operation(T a, T b, T& c) {
         if (std::is_signed<T>::value) {
-            if ((a >= 0 && b < 0 && a - b < 0) || (a < 0 && b >= 0 && a - b > 0)) {
-                return false;
+            if (b > 0 && a < std::numeric_limits<T>::min() + b) {
+                return false;  // 会下溢
+            }
+            if (b < 0 && a > std::numeric_limits<T>::max() + b) {
+                return false;  // 会上溢
             }
         } else {
             if (a < b) {
@@ -59,7 +62,7 @@ template<>
 bool TryMinusOpWithOverflowCheck::Operation(double a, double b, double& c);
 
 template<>
-bool TryMinusOpWithOverflowCheck::Operation(hugeint_t a, hugeint_t b, int64_t& c);
+bool TryMinusOpWithOverflowCheck::Operation(hugeint_t a, hugeint_t b, hugeint_t& c);
 
 template <>
 bool TryMinusOpWithOverflowCheck::Operation(date_stor_t a, int64_t b, date_stor_t& c);

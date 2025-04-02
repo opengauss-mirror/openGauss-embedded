@@ -418,6 +418,7 @@ auto Planner::PlanGroupByClause(SelectStatement& statement, int origin_select_si
     // having clause
     if (statement.having_clause) {
         ReplaceGroupClauseAgg(func_set, group_by_map, agg_exprs, statement.having_clause);
+        ReplacePositionRef(statement.having_clause, statement.select_expr_list);
     }
 
     for (auto& sort_item : statement.sort_items) {
@@ -969,12 +970,12 @@ auto Planner::CreatePhysicalExpression(BoundExpression& logical_expr, const Logi
             return LikeOpFactory(like_op.OpName(), std::move(left), std::move(right), std::move(escape));
         }
         case ExpressionType::FUNC_CALL: {
-            auto& func_call_expr = static_cast<BoundFuncCall&>(logical_expr);
+            auto& func_call_expr = static_cast<BoundFuncExpr&>(logical_expr);
             std::vector<std::unique_ptr<Expression>> args;
-            for (auto& arg : func_call_expr.args_) {
+            for (auto& arg : func_call_expr.args) {
                 args.push_back(CreatePhysicalExpression(*arg, plan));
             }
-            return FunctionFactory(func_call_expr.func_name_, std::move(args));
+            return FunctionFactory(func_call_expr.funcname, std::move(args));
         }
         case ExpressionType::SEQ_FUNC: {
             auto& seq_func_expr = static_cast<BoundSequenceFunction&>(logical_expr);

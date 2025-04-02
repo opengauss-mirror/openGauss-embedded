@@ -26,7 +26,7 @@
 #include "common/string_util.h"
 #include "common/util.h"
 
-auto Binder::BindDrop(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_ptr<DropStatement> {
+auto Binder::BindDropStmt(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_ptr<DropStatement> {
     if (stmt->objects->length != 1) {
         throw std::invalid_argument(fmt::format("Can only drop one object at a time."));
     }

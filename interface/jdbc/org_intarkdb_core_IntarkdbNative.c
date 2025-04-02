@@ -25,6 +25,7 @@
 
 #include <string.h>
 
+#include "compute/kv/intarkdb_kv.h"
 #include "intarkdb_sql.h"
 #include "network/server/srv_interface.h"
 
@@ -222,7 +223,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1val
         return result_array;
     } else {
         (*env)->DeleteLocalRef(env, result_array);
-        return  NULL;
+        return NULL;
     }
 }
 /*
@@ -536,6 +537,218 @@ JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1delete_1d
     const char *c_dbname = (*env)->GetStringUTFChars(env, dbname, 0);
     server_delete_database(c_dbname);
 #endif
+}
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_open_kv
+ * Signature: (Ljava/lang/String;Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1open_1kv(JNIEnv *env, jclass cls, jstring path,
+                                                                                jobject db) {
+    const char *c_path = (*env)->GetStringUTFChars(env, path, 0);
+    intarkdb_database *c_db = (intarkdb_database *)(*env)->GetDirectBufferAddress(env, db);
+    char *mb_path = NULL;
+#ifdef _WIN32
+    int w_len = MultiByteToWideChar(CP_UTF8, 0, c_path, -1, NULL, 0);
+    wchar_t *w_path = (wchar_t *)malloc(w_len * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, c_path, -1, w_path, w_len);
+    int mb_len = WideCharToMultiByte(CP_ACP, 0, w_path, -1, NULL, 0, NULL, NULL);
+    mb_path = (char *)malloc(mb_len * sizeof(char));
+    WideCharToMultiByte(CP_ACP, 0, w_path, -1, mb_path, mb_len, NULL, NULL);
+    free(w_path);
+#else
+    mb_path = strdup(c_path);
+#endif
+
+    int result = intarkdb_open_kv(mb_path, c_db);
+    free(mb_path);
+    (*env)->ReleaseStringUTFChars(env, path, c_path);
+    return result;
+}
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_close_kv
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1close_1kv(JNIEnv *env, jclass cls, jobject db) {
+    intarkdb_database_kv *c_db = (intarkdb_database_kv *)(*env)->GetDirectBufferAddress(env, db);
+    intarkdb_close_kv(c_db);
+}
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_connect_kv
+ * Signature: (Ljava/nio/ByteBuffer;Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1connect_1kv(JNIEnv *env, jclass cls,
+                                                                                   jobject database, jobject conn) {
+    intarkdb_database_kv *c_database = (intarkdb_database_kv *)(*env)->GetDirectBufferAddress(env, database);
+    intarkdb_connection_kv *c_conn = (intarkdb_connection_kv *)(*env)->GetDirectBufferAddress(env, conn);
+    return intarkdb_connect_kv(*c_database, c_conn);
+}
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_disconnect_kv
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1disconnect_1kv(JNIEnv *env, jclass cls,
+                                                                                      jobject conn) {
+    intarkdb_connection_kv *c_conn = (intarkdb_connection_kv *)(*env)->GetDirectBufferAddress(env, conn);
+    intarkdb_disconnect_kv(c_conn);
+}
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_set
+ * Signature: (Ljava/nio/ByteBuffer;Ljava/lang/String;Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1set(JNIEnv *env, jclass cls,
+                                                                               jobject connection, jstring key,
+                                                                               jstring val) {
+    const char *c_key = (*env)->GetStringUTFChars(env, key, 0);
+    const char *c_val = (*env)->GetStringUTFChars(env, val, 0);
+    intarkdb_connection_kv *c_connection = (intarkdb_connection_kv *)(*env)->GetDirectBufferAddress(env, connection);
+
+    KvReply *result = intarkdb_set(*c_connection, c_key, c_val);
+    if (result == NULL) {
+        return -1;
+    }
+    if (result->type != 0) {
+        char exceptionMsg[256];
+        snprintf(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", result->type, result->str);
+        jstring jStrException = (*env)->NewStringUTF(env, exceptionMsg);
+        jclass exceptionClass = (*env)->FindClass(env, "java/lang/RuntimeException");
+        if (exceptionClass != NULL) {
+            (*env)->ThrowNew(env, exceptionClass, (*env)->GetStringUTFChars(env, jStrException, 0));
+        }
+        (*env)->ReleaseStringUTFChars(env, jStrException, (*env)->GetStringUTFChars(env, jStrException, 0));
+        return -1;
+    }
+
+    jint return_type = result->type;
+    // 释放资源
+    (*env)->ReleaseStringUTFChars(env, key, c_key);
+    (*env)->ReleaseStringUTFChars(env, val, c_val);
+    return return_type;
+}
+
+JNIEXPORT jstring JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1get(JNIEnv *env, jclass cls,
+                                                                                  jobject connection, jstring key) {
+    const char *c_key = (*env)->GetStringUTFChars(env, key, 0);
+    intarkdb_connection_kv *c_connection = (intarkdb_connection_kv *)(*env)->GetDirectBufferAddress(env, connection);
+    KvReply *result = intarkdb_get(*c_connection, c_key);
+
+    if (result->type != 0) {
+        char exceptionMsg[256];
+        snprintf(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", result->type, result->str);
+        jstring jStrException = (*env)->NewStringUTF(env, exceptionMsg);
+        jclass exceptionClass = (*env)->FindClass(env, "java/lang/RuntimeException");
+        if (exceptionClass != NULL) {
+            (*env)->ThrowNew(env, exceptionClass, (*env)->GetStringUTFChars(env, jStrException, 0));
+        }
+        (*env)->ReleaseStringUTFChars(env, jStrException, (*env)->GetStringUTFChars(env, jStrException, 0));
+        return NULL;
+    }
+    jstring jResult = (*env)->NewStringUTF(env, result->str);
+    return jResult;
+}
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_del
+ * Signature: (Ljava/nio/ByteBuffer;Ljava/lang/String;Ljava/nio/ByteBuffer;)I
+ */
+JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1del(JNIEnv *env, jclass cls,
+                                                                               jobject connection, jstring key) {
+    const char *c_key = (*env)->GetStringUTFChars(env, key, 0);
+    intarkdb_connection_kv *c_connection = (intarkdb_connection_kv *)(*env)->GetDirectBufferAddress(env, connection);
+    KvReply *result = intarkdb_del(*c_connection, c_key);
+    if (result == NULL) {
+        return -1;
+    }
+    if (result->type != 0) {
+        char exceptionMsg[256];
+        snprintf(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", result->type, result->str);
+        jstring jStrException = (*env)->NewStringUTF(env, exceptionMsg);
+        jclass exceptionClass = (*env)->FindClass(env, "java/lang/RuntimeException");
+        if (exceptionClass != NULL) {
+            (*env)->ThrowNew(env, exceptionClass, (*env)->GetStringUTFChars(env, jStrException, 0));
+        }
+        (*env)->ReleaseStringUTFChars(env, jStrException, (*env)->GetStringUTFChars(env, jStrException, 0));
+        return -1;
+    }
+    jint return_type = result->type;
+    // 释放资源
+    (*env)->ReleaseStringUTFChars(env, key, c_key);
+    return return_type;
+}
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_begin
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1begin(JNIEnv *env, jclass cls,
+                                                                                 jobject conn) {
+    intarkdb_connection_kv *c_conn = (intarkdb_connection_kv *)(*env)->GetDirectBufferAddress(env, conn);
+    if (!*c_conn) {
+        char exceptionMsg[256];
+        snprintf(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", -1, "KvConnection is NULL");
+        jstring jStrException = (*env)->NewStringUTF(env, exceptionMsg);
+        jclass exceptionClass = (*env)->FindClass(env, "java/lang/RuntimeException");
+        if (exceptionClass != NULL) {
+            (*env)->ThrowNew(env, exceptionClass, (*env)->GetStringUTFChars(env, jStrException, 0));
+        }
+        (*env)->ReleaseStringUTFChars(env, jStrException, (*env)->GetStringUTFChars(env, jStrException, 0));
+    } else {
+        intarkdb_begin(*c_conn);
+    }
+}
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_commit
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1commit(JNIEnv *env, jclass cls,
+                                                                                  jobject conn) {
+    intarkdb_connection_kv *c_conn = (intarkdb_connection_kv *)(*env)->GetDirectBufferAddress(env, conn);
+
+    if (!*c_conn) {
+        char exceptionMsg[256];
+        snprintf(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", -1, "KvConnection is NULL");
+        jstring jStrException = (*env)->NewStringUTF(env, exceptionMsg);
+        jclass exceptionClass = (*env)->FindClass(env, "java/lang/RuntimeException");
+        if (exceptionClass != NULL) {
+            (*env)->ThrowNew(env, exceptionClass, (*env)->GetStringUTFChars(env, jStrException, 0));
+        }
+        (*env)->ReleaseStringUTFChars(env, jStrException, (*env)->GetStringUTFChars(env, jStrException, 0));
+    } else {
+        intarkdb_commit(*c_conn);
+    }
+}
+
+/*
+ * Class:     org_intarkdb_core_IntarkdbNative
+ * Method:    intarkdb_kv_rollback
+ * Signature: (Ljava/nio/ByteBuffer;)V
+ */
+JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1rollback(JNIEnv *env, jclass cls,
+                                                                                    jobject conn) {
+    intarkdb_connection_kv *c_conn = (intarkdb_connection_kv *)(*env)->GetDirectBufferAddress(env, conn);
+    if (!*c_conn) {
+        char exceptionMsg[256];
+        snprintf(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", -1, "KvConnection is NULL");
+        jstring jStrException = (*env)->NewStringUTF(env, exceptionMsg);
+        jclass exceptionClass = (*env)->FindClass(env, "java/lang/RuntimeException");
+        if (exceptionClass != NULL) {
+            (*env)->ThrowNew(env, exceptionClass, (*env)->GetStringUTFChars(env, jStrException, 0));
+        }
+        (*env)->ReleaseStringUTFChars(env, jStrException, (*env)->GetStringUTFChars(env, jStrException, 0));
+    } else {
+        intarkdb_rollback(*c_conn);
+    }
 }
 
 #ifdef __cplusplus

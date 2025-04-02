@@ -487,10 +487,12 @@ static status_t cm_parse_config(config_t *config, char *buf, uint32 buf_len, boo
         config_item_t* item = cm_get_config_item(config,&name,GS_FALSE);
         if(item != NULL) {
             is_write_ini = item->is_write_ini;
-        }
-        if (!is_write_ini) {
+        } else {
             GS_THROW_ERROR(ERR_INVALID_PARAMETER, T2S(&name));
             return GS_ERROR;
+        }
+        if (!is_write_ini) {
+            continue;
         }
 
         if (cm_set_config_item(config, &name, &value, &comment, is_ifile, set_alias) != GS_SUCCESS) {

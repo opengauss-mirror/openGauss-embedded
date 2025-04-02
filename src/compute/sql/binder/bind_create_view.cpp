@@ -47,7 +47,7 @@ void CheckUnSpportedWithCreateViewOptions(duckdb_libpgquery::PGViewStmt *stmt) {
     }
 }
 
-auto Binder::BindCreateView(duckdb_libpgquery::PGViewStmt *stmt) -> std::unique_ptr<CreateViewStatement> {
+auto Binder::BindCreateViewStmt(duckdb_libpgquery::PGViewStmt *stmt) -> std::unique_ptr<CreateViewStatement> {
     // CheckSysPrivilege
     if (catalog_.CheckSysPrivilege(CREATE_VIEW) != GS_TRUE) {
         throw intarkdb::Exception(ExceptionType::BINDER,
@@ -55,7 +55,7 @@ auto Binder::BindCreateView(duckdb_libpgquery::PGViewStmt *stmt) -> std::unique_
     }
 
     auto viewName = intarkdb::StringUtil::Lower(stmt->view->relname);
-    auto queryStmt = BindStatement(stmt->query);
+    auto queryStmt = BindSQLStmt(stmt->query);
 
     if(ParamCount() > 0 ) {
         throw intarkdb::Exception(ExceptionType::BINDER, "unsupported create view with params");

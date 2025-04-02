@@ -24,7 +24,7 @@
 from ctypes import *
 from intarkdb.module.model import *
 from intarkdb.dbapi2 import Date,Timestamp
-from intarkdb.module.StandardError import OperationalError
+from intarkdb.module.StandardError import OperationalError, InterfaceError
 import decimal, sys
 
 
@@ -284,6 +284,10 @@ class SQL:
 
 
     def intarkdb_query(self, conn, sql_str, intarkdb_result, network = False):
+        # 判断连接是否关闭
+        if(conn == None):
+            raise InterfaceError(SQL_ERROR, "connection is closed")
+        
         if(network == False):
             ret = self._dynamic.get_intarkdb_sql_clib().intarkdb_query(byref(conn), sql_str.encode(), intarkdb_result)
         # if(network == True):
@@ -574,6 +578,10 @@ class SQL:
 
 
     def intarkdb_open_table(self, conn, table_name, is_memory = False):
+        # 判断连接是否关闭
+        if(conn == None):
+            raise InterfaceError(SQL_ERROR, "connection is closed")
+        
         if(is_memory == False):
             return self._dynamic.get_intarkdb_sql_clib().intarkdb_open_table_kv(byref(conn), table_name.encode())
         if(is_memory == True):
@@ -581,24 +589,48 @@ class SQL:
         
     
     def intarkdb_set(self, conn, key, value):
+        # 判断连接是否关闭
+        if(conn == None):
+            raise InterfaceError(SQL_ERROR, "connection is closed")
+        
         return self._dynamic.get_intarkdb_sql_clib().intarkdb_set(byref(conn), key.encode(), value.encode())
 
 
     def intarkdb_get(self, conn, key):
+        # 判断连接是否关闭
+        if(conn == None):
+            raise InterfaceError(SQL_ERROR, "connection is closed")
+        
         return self._dynamic.get_intarkdb_sql_clib().intarkdb_get(byref(conn), key.encode())
     
 
     def intarkdb_del(self, conn, key):
+        # 判断连接是否关闭
+        if(conn == None):
+            raise InterfaceError(SQL_ERROR, "connection is closed")
+
         return self._dynamic.get_intarkdb_sql_clib().intarkdb_del(byref(conn), key.encode())
 
 
     def intarkdb_multi(self, conn):
+        # 判断连接是否关闭
+        if(conn == None):
+            raise InterfaceError(SQL_ERROR, "connection is closed")
+
         return self._dynamic.get_intarkdb_sql_clib().intarkdb_multi(byref(conn))
     
 
     def intarkdb_exec(self, conn):
+        # 判断连接是否关闭
+        if(conn == None):
+            raise InterfaceError(SQL_ERROR, "connection is closed")
+
         return self._dynamic.get_intarkdb_sql_clib().intarkdb_exec(byref(conn))
     
 
     def intarkdb_discard(self, conn):
+        # 判断连接是否关闭
+        if(conn == None):
+            raise InterfaceError(SQL_ERROR, "connection is closed")
+
         return self._dynamic.get_intarkdb_sql_clib().intarkdb_discard(byref(conn))

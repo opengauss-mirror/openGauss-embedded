@@ -62,7 +62,7 @@ auto Binder::BindCtas(PGCreateTableAsStmt *stmt) -> std::unique_ptr<CtasStatemen
                                   fmt::format("table name is too long, max length:{}", GS_NAME_BUFFER_SIZE - 1));
     }
 
-    auto select_statement = BindSelect(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(stmt->query));
+    auto select_statement = BindSelectStmt(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(stmt->query));
 
     // TODO: 目前先暂时不支持param 存在于 select list 中[ctas 特殊情况]
     for (auto &expr : select_statement->select_expr_list) {

@@ -51,7 +51,7 @@ auto Binder::BindShowTables() -> std::unique_ptr<ShowStatement> {
                                   fmt::format("show stmt, query fail to parse:{}", parser_.error_message));
     }
     auto select_stmt = reinterpret_cast<duckdb_libpgquery::PGRawStmt *>(parser_.parse_tree->head->data.ptr_value)->stmt;
-    result->stmt = BindSelect(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(select_stmt));
+    result->stmt = BindSelectStmt(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(select_stmt));
     return result;
 }
 
@@ -79,7 +79,7 @@ auto Binder::BindShowSpecificTable(const std::string &lname) -> std::unique_ptr<
                                   fmt::format("show stmt, query fail to parse:{}", parser_.error_message));
     }
     auto select_stmt = reinterpret_cast<duckdb_libpgquery::PGRawStmt *>(parser_.parse_tree->head->data.ptr_value)->stmt;
-    result->stmt = BindSelect(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(select_stmt));
+    result->stmt = BindSelectStmt(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(select_stmt));
     return result;
 }
 
