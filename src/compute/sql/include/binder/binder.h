@@ -158,7 +158,7 @@ class Binder {
 #endif
     auto BindOverClause(const struct duckdb_libpgquery::PGWindowDef& over) -> std::unique_ptr<intarkdb::OverClause>;
 
-    std::unique_ptr<BoundExpression> BindExpression(duckdb_libpgquery::PGNode *node,int depth);
+    std::unique_ptr<BoundExpression> BindExpression(duckdb_libpgquery::PGNode *node, int depth);
     std::vector<std::unique_ptr<BoundExpression>> BindExpressionList(duckdb_libpgquery::PGList *list, int depth);
     std::unique_ptr<BoundExpression> BindAExpr(duckdb_libpgquery::PGAExpr *root, int depth);
     std::unique_ptr<BoundExpression> BindFuncExpression(duckdb_libpgquery::PGFuncCall *root, int depth);

@@ -620,7 +620,8 @@ JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1set(J
     }
     if (result->type != 0) {
         char exceptionMsg[256];
-        int ret = snprintf_s(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", result->type, result->str);
+        int ret =
+        snprintf_s(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", result->type, result->str);
         if (ret < 0) {
             return -1;
         }
@@ -651,7 +652,8 @@ JNIEXPORT jstring JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1ge
 
     if (result->type != 0) {
         char exceptionMsg[256];
-        int ret = snprintf_s(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", result->type, result->str);
+        int ret =
+        snprintf_s(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", result->type, result->str);
         if (ret < 0) {
             return -1;
         }
@@ -682,7 +684,8 @@ JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1del(J
     }
     if (result->type != 0) {
         char exceptionMsg[256];
-        int ret = snprintf_s(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", result->type, result->str);
+        int ret =
+        snprintf_s(exceptionMsg, sizeof(exceptionMsg), "Type: %d, Description: %s", result->type, result->str);
         if (ret < 0) {
             return -1;
         }

@@ -12,10 +12,10 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
  *
- * bound_table_ref.cpp
+ * bound_query_source.cpp
  *
  * IDENTIFICATION
- * openGauss-embedded/src/compute/sql/binder/bound_table_ref.cpp
+ * openGauss-embedded/src/compute/sql/binder/bound_query_source.cpp
  *
  * -------------------------------------------------------------------------
  */

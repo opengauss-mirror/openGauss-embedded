@@ -57,7 +57,6 @@ std::vector<std::string> SplitSQLStrings(const std::string& sql) {
         } else {
             statement += ch;
         }
-
     }
     statement =  Trim(statement);
     if (!statement.empty() ) {
