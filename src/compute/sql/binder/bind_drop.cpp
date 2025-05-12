@@ -26,10 +26,10 @@
 #include "common/string_util.h"
 #include "common/util.h"
 
-auto Binder::BindDropStmt(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_ptr<DropStatement> 
+auto Binder::BindDropStmt(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_ptr<DropStatement>
 {
     if (stmt->objects->length != 1) {
-        throw intarkdb::Exception(ExceptionType::BINDER,"Unsupport drop multiple objects");
+        throw intarkdb::Exception(ExceptionType::BINDER, "Unsupport drop multiple objects");
     }
     ObjectType type;
     switch (stmt->removeType) {
@@ -49,13 +49,12 @@ auto Binder::BindDropStmt(duckdb_libpgquery::PGDropStmt *stmt) -> std::unique_pt
             type = ObjectType::SYNONYM;
             break;
         default:
-            throw intarkdb::Exception(ExceptionType::BINDER,"Unsupport drop type");
+            throw intarkdb::Exception(ExceptionType::BINDER, "Unsupport drop type");
     }
 
     auto view_list = (duckdb_libpgquery::PGList *)stmt->objects->head->data.ptr_value;
     std::string name;
     if (view_list->length == 1) {
-        // TODO: 将所有名称相关都强制为小写之后，才能修改这里，否则会drop不掉
         name = ((duckdb_libpgquery::PGValue *)view_list->head->data.ptr_value)->val.str;
     } else {
         throw std::invalid_argument(fmt::format("This format is not currently supported."));

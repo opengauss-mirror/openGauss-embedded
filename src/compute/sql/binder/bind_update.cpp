@@ -36,13 +36,13 @@ auto CheckUpdateOption(duckdb_libpgquery::PGUpdateStmt *stmt) -> void {
     }
 }
 
-auto Binder::CheckTablePrivilege(const TableInfo &table_info) -> void 
+auto Binder::CheckTablePrivilege(const TableInfo &table_info) -> void
 {
     if (table_info.GetObjectType() != DIC_TYPE_TABLE) {
         throw intarkdb::Exception(ExceptionType::BINDER, "Can't update, entry type not support!");
     }
     if (table_info.IsTimeScale() && !get_ts_update_switch_on(((db_handle_t *)catalog_.GetStorageHandle())->handle)) {
-        throw intarkdb::Exception(ExceptionType::BINDER, 
+        throw intarkdb::Exception(ExceptionType::BINDER,
             "time series table cannot update! please set TS_UPDATE_SUPPORT to TRUE");
     }
     if (table_info.GetSpaceId() != SQL_SPACE_TYPE_USERS) {
@@ -73,7 +73,7 @@ auto Binder::BindUpdateItems(duckdb_libpgquery::PGList *target_list, const Bound
     return update_items;
 }
 
-auto Binder::BindUpdateStmt(duckdb_libpgquery::PGUpdateStmt *stmt) -> std::unique_ptr<UpdateStatement> 
+auto Binder::BindUpdateStmt(duckdb_libpgquery::PGUpdateStmt *stmt) -> std::unique_ptr<UpdateStatement>
 {
     // 检查是否支持更新选项
     CheckUpdateOption(stmt);

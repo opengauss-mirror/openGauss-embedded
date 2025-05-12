@@ -101,7 +101,7 @@ auto Binder::BindExpression(duckdb_libpgquery::PGNode *node, int depth) -> std::
                               fmt::format("type {} expr  not supported", Binder::ConvertNodeTagToString(node->type)));
 }
 
-auto Binder::BindExprResTarget(duckdb_libpgquery::PGResTarget *root, int depth) -> std::unique_ptr<BoundExpression> 
+auto Binder::BindExprResTarget(duckdb_libpgquery::PGResTarget *root, int depth) -> std::unique_ptr<BoundExpression>
 {
     CHECK_EXPRESSION_DEPTH(depth);
     bind_location = root->location;
@@ -115,7 +115,7 @@ auto Binder::BindExprResTarget(duckdb_libpgquery::PGResTarget *root, int depth) 
     return expr;
 }
 
-auto Binder::BindStarExpr(duckdb_libpgquery::PGAStar *node) -> std::unique_ptr<BoundExpression> 
+auto Binder::BindStarExpr(duckdb_libpgquery::PGAStar *node) -> std::unique_ptr<BoundExpression>
 {
     bind_location = node->location;
     if (node->except_list) {
@@ -226,11 +226,11 @@ auto Binder::BindColumnRef(duckdb_libpgquery::PGColumnRef *node) -> std::unique_
     }
     throw intarkdb::Exception(
         ExceptionType::NOT_IMPLEMENTED,
-        fmt::format("ColumnRef type {} not implemented!", 
+        fmt::format("ColumnRef type {} not implemented!",
             Binder::ConvertNodeTagToString(column_fields->type)), bind_location);
 }
 
-auto Binder::BindConstanExpr(duckdb_libpgquery::PGAConst *node) -> std::unique_ptr<BoundExpression> 
+auto Binder::BindConstanExpr(duckdb_libpgquery::PGAConst *node) -> std::unique_ptr<BoundExpression>
 {
     bind_location = node->location;
     auto &val = node->val;
@@ -381,7 +381,7 @@ auto Binder::BindOverClause(const struct PGWindowDef &over) -> std::unique_ptr<i
     return over_clause;
 }
 
-auto Binder::BindFuncExpression(duckdb_libpgquery::PGFuncCall *root, int depth) -> std::unique_ptr<BoundExpression> 
+auto Binder::BindFuncExpression(duckdb_libpgquery::PGFuncCall *root, int depth) -> std::unique_ptr<BoundExpression>
 {
     CHECK_EXPRESSION_DEPTH(depth);
     bind_location = root->location;

@@ -32,7 +32,7 @@
 #include "main/connection.h"
 #include "main/database.h"
 
-class ConnectionForUpdateDeleteTest : public ::testing::Test 
+class ConnectionForUpdateDeleteTest : public ::testing::Test
 {
    protected:
     ConnectionForUpdateDeleteTest() {}
@@ -122,7 +122,7 @@ TEST_F(ConnectionForUpdateDeleteTest, TestDeleteSysTable) {
               "Binder Error: Cannot delete from system table : SYS_TABLES");
 }
 
-TEST_F(ConnectionForUpdateDeleteTest, TestTsTableUpdateFail) 
+TEST_F(ConnectionForUpdateDeleteTest, TestTsTableUpdateFail)
 {
     conn->Query("drop table if exists product_task_stat");
     auto r = conn->Query(R"(create table product_task_stat(
@@ -130,7 +130,7 @@ TEST_F(ConnectionForUpdateDeleteTest, TestTsTableUpdateFail)
                         effective_num int,
                         collect_status int,
                         create_time timestamp default now()
-                        ) partition by range(create_time) 
+                        ) partition by range(create_time)
                         timescale interval '1h' retention '30d' autopart crosspart;)");
     EXPECT_EQ(r->GetRetCode(), 0);
     r = conn->Query(R"(insert into product_task_stat (planned_num, effective_num, collect_status)
@@ -289,14 +289,15 @@ class ConnectionTsUpdateTest : public ::testing::Test {
 std::shared_ptr<IntarkDB> ConnectionTsUpdateTest::db_instance1 = nullptr;
 std::unique_ptr<Connection> ConnectionTsUpdateTest::conn1 = nullptr;
 
-TEST_F(ConnectionTsUpdateTest, TestTsTableUpdateSuc) {
+TEST_F(ConnectionTsUpdateTest, TestTsTableUpdateSuc)
+{
     conn1->Query("drop table if exists product_task_stat");
     auto r = conn1->Query(R"(create table product_task_stat(
                         planned_num int,
                         effective_num int,
                         collect_status int,
                         create_time timestamp default now()
-                        ) partition by range(create_time) 
+                        ) partition by range(create_time)
                          timescale interval '1h' retention '30d' autopart crosspart;)");
     EXPECT_EQ(r->GetRetCode(), 0);
     r = conn1->Query(R"(insert into product_task_stat (planned_num, effective_num, collect_status)

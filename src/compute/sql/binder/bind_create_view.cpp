@@ -47,12 +47,12 @@ void CheckUnSpportedWithCreateViewOptions(duckdb_libpgquery::PGViewStmt *stmt) {
     }
 }
 
-auto Binder::BindCreateViewStmt(duckdb_libpgquery::PGViewStmt *stmt) -> std::unique_ptr<CreateViewStatement> 
+auto Binder::BindCreateViewStmt(duckdb_libpgquery::PGViewStmt *stmt) -> std::unique_ptr<CreateViewStatement>
 {
     // CheckSysPrivilege
     if (catalog_.CheckSysPrivilege(CREATE_VIEW) != GS_TRUE) {
         throw intarkdb::Exception(ExceptionType::BINDER,
-                                    fmt::format("user {} create view permission denied!", user_));
+            fmt::format("user {} create view permission denied!", user_));
     }
 
     auto viewName = intarkdb::StringUtil::Lower(stmt->view->relname);

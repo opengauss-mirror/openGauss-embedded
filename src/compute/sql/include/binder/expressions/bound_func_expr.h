@@ -1,5 +1,5 @@
 /*
- * Copyright (c) GBA-NCTI-ISDC. 2022-2024.
+ * 版权所有 (c) GBA-NCTI-ISDC 2022-2024
  *
  * openGauss embedded is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -29,33 +29,35 @@
 #include "function/sql_function.h"
 
 class BoundFuncExpr : public BoundExpression {
-   public:
+public:
     // single argument
     explicit BoundFuncExpr(const char* func_name, std::unique_ptr<BoundExpression> arg)
-        : BoundExpression(ExpressionType::FUNC_CALL), funcname(func_name) {
+        : BoundExpression(ExpressionType::FUNC_CALL), funcname(func_name)
+    {
         args.push_back(std::move(arg));
     }
-    // two arguments 
-    explicit BoundFuncExpr(const char* func_name, 
-        std::unique_ptr<BoundExpression> arg1, 
+    // two arguments
+    explicit BoundFuncExpr(const char* func_name,
+        std::unique_ptr<BoundExpression> arg1,
         std::unique_ptr<BoundExpression> arg2)
-        : BoundExpression(ExpressionType::FUNC_CALL), funcname(func_name) 
+        : BoundExpression(ExpressionType::FUNC_CALL), funcname(func_name)
     {
         args.push_back(std::move(arg1));
         args.push_back(std::move(arg2));
     }
-    // multiple arguments 
+    // multiple arguments
     explicit BoundFuncExpr(const char* func_name, std::vector<std::unique_ptr<BoundExpression>> in_args)
         : BoundExpression(ExpressionType::FUNC_CALL), funcname(func_name), args(std::move(in_args)) {}
 
-    auto ToString() const -> std::string override 
-    { 
-        return args.size()==0 ? 
-            fmt::format("{}()", funcname) : 
-            fmt::format("{}({})", funcname, args); 
+    auto ToString() const -> std::string override
+    {
+        return args.size()==0 ?
+            fmt::format("{}()", funcname) :
+            fmt::format("{}({})", funcname, args);
     }
 
-    auto HasAggregation() const -> bool override {
+    auto HasAggregation() const -> bool override
+    {
         for (auto& arg : args) {
             if (arg->HasAggregation()) {
                 return true;
@@ -64,7 +66,8 @@ class BoundFuncExpr : public BoundExpression {
         return false;
     }
 
-    auto HasSubQuery() const -> bool override {
+    auto HasSubQuery() const -> bool override
+    {
         for (auto& arg : args) {
             if (arg->HasSubQuery()) {
                 return true;
@@ -73,7 +76,8 @@ class BoundFuncExpr : public BoundExpression {
         return false;
     }
 
-    auto HasParameter() const -> bool override {
+    auto HasParameter() const -> bool override
+    {
         for (auto& arg : args) {
             if (arg->HasParameter()) {
                 return true;
@@ -82,7 +86,8 @@ class BoundFuncExpr : public BoundExpression {
         return false;
     }
 
-    auto HasWindow() const -> bool override {
+    auto HasWindow() const -> bool override
+    {
         for (auto& arg : args) {
             if (arg->HasWindow()) {
                 return true;
@@ -91,7 +96,8 @@ class BoundFuncExpr : public BoundExpression {
         return false;
     }
 
-    virtual hash_t Hash() const override {
+    virtual hash_t Hash() const override
+    {
         hash_t h = HashUtil::HashBytes(funcname.c_str(), funcname.length());
         for (auto& arg : args) {
             h = HashUtil::CombineHash(h, arg->Hash());
@@ -99,7 +105,8 @@ class BoundFuncExpr : public BoundExpression {
         return h;
     }
 
-    virtual auto Equals(const BoundExpression& other) const -> bool override {
+    virtual auto Equals(const BoundExpression& other) const -> bool override
+    {
         if (other.Type() != ExpressionType::FUNC_CALL) {
             return false;
         }
@@ -116,7 +123,8 @@ class BoundFuncExpr : public BoundExpression {
     }
 
     // copy
-    virtual std::unique_ptr<BoundExpression> Copy() const override {
+    virtual std::unique_ptr<BoundExpression> Copy() const override
+    {
         std::vector<std::unique_ptr<BoundExpression>> new_args;
         new_args.reserve(args.size());
         for (auto& arg : args) {
@@ -125,7 +133,8 @@ class BoundFuncExpr : public BoundExpression {
         return std::make_unique<BoundFuncExpr>(funcname.c_str(), std::move(new_args));
     }
 
-    virtual LogicalType ReturnType() const override {
+    virtual LogicalType ReturnType() const override
+    {
         auto func_iter = SQLFunction::FUNC_MAP.find(funcname);
         if (func_iter != SQLFunction::FUNC_MAP.end()) {
             return func_iter->second.return_type;

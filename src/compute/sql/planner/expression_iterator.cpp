@@ -230,7 +230,9 @@ void TableRefIterator::EnumerateTableRef(SelectStatement &stmt,
     }
 }
 
-void TableRefIterator::EnumerateTableRef(BoundQuerySource &ref, const std::function<void(BoundBaseTable &tbl)> &callback) {
+void TableRefIterator::EnumerateTableRef(BoundQuerySource &ref,
+    const std::function<void(BoundBaseTable &tbl)> &callback)
+{
     switch (ref.Type()) {
         case DataSourceType::BASE_TABLE: {
             callback(static_cast<BoundBaseTable &>(ref));

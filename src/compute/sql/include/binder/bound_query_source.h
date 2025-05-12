@@ -1,5 +1,5 @@
 /*
- * Copyright (c) GBA-NCTI-ISDC. 2022-2024.
+ * 版权所有 (c) GBA-NCTI-ISDC 2022-2024
  *
  * openGauss embedded is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -42,7 +42,7 @@ enum class DataSourceType : uint8_t {
 auto DataSourceTypeToString(DataSourceType type) -> std::string_view;
 
 class BoundQuerySource {
-   public:
+public:
     explicit BoundQuerySource(DataSourceType type) : type_(type) {}
     BoundQuerySource() = default;
     virtual ~BoundQuerySource() = default;
@@ -56,7 +56,7 @@ class BoundQuerySource {
 
     virtual std::string ToString() const { return "BoundQuerySource"; }
 
-   private:
+private:
     DataSourceType type_{DataSourceType::INVALID};
     exp_dict_type_t dict_type_{en_exp_dict_type::DIC_TYPE_UNKNOWN};
 };

@@ -63,7 +63,7 @@
 #include "type/operator/cast_operators.h"
 #include "type/type_system.h"
 
-void Binder::ParseSQL(const std::string &query) 
+void Binder::ParseSQL(const std::string &query)
 {
     bind_location = -1;
     parser_.Parse(query);
@@ -83,7 +83,7 @@ auto Binder::SaveParseResult(duckdb_libpgquery::PGList *tree) -> void {
     }
 }
 
-auto Binder::BindSQLStmt(duckdb_libpgquery::PGNode *stmt) -> std::unique_ptr<BoundStatement> 
+auto Binder::BindSQLStmt(duckdb_libpgquery::PGNode *stmt) -> std::unique_ptr<BoundStatement>
 {
     std::unique_ptr<BoundStatement> result;
     if (stmt == nullptr) {
@@ -235,7 +235,8 @@ static auto CreateCrossJoin(std::unique_ptr<BoundQuerySource> left, std::unique_
     return std::make_unique<BoundJoin>(JoinType::CrossJoin, std::move(left), std::move(right), nullptr);
 }
 
-auto Binder::BindFromClause(duckdb_libpgquery::PGList *list) -> std::unique_ptr<BoundQuerySource> {
+auto Binder::BindFromClause(duckdb_libpgquery::PGList *list) -> std::unique_ptr<BoundQuerySource>
+{
     if (list == nullptr) {
         // not table
         return std::make_unique<BoundQuerySource>(DataSourceType::DUAL);
@@ -277,7 +278,8 @@ auto Binder::BindTableAllColumns(const std::string &table_name) -> std::vector<s
     return columns;
 }
 
-auto Binder::BindAllColumnRefs(const char *expect_relation_name) -> std::vector<std::unique_ptr<BoundExpression>> {
+auto Binder::BindAllColumnRefs(const char *expect_relation_name) -> std::vector<std::unique_ptr<BoundExpression>>
+{
     if (expect_relation_name) {
         auto columns = BindTableAllColumns(expect_relation_name);
         if (columns.empty()) {
@@ -323,7 +325,8 @@ static auto SearchAndHandleStarExpression(BoundExpression &expr, BoundStar **sta
 }
 
 /** 绑定 select 子句 */
-auto Binder::BindSelectListExprs(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>> {
+auto Binder::BindSelectListExprs(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>>
+{
     auto select_list = std::vector<std::unique_ptr<BoundExpression>>{};
     int count = 0;
     for (auto node = list->head; node != nullptr; node = lnext(node), count++) {
@@ -378,8 +381,9 @@ auto Binder::BindSelectListExprs(duckdb_libpgquery::PGList *list) -> std::vector
                 }
             }
             if (has_top_or_bottom) {
-                throw intarkdb::Exception(ExceptionType::BINDER, 
-                    "Some functions are allowed only in the SELECT list of a query. And, cannot be mixed with other functions or columns.");
+                throw intarkdb::Exception(ExceptionType::BINDER,
+                    "Some functions are allowed only in the SELECT list of a query. And,"
+                    "cannot be mixed with other functions or columns.");
                 break;
             }
         }
@@ -594,7 +598,7 @@ auto Binder::BindCheckPoint(duckdb_libpgquery::PGCheckPointStmt *stmt) -> std::u
     return result;
 }
 
-auto Binder::BindExplainStmt(duckdb_libpgquery::PGExplainStmt *stmt) -> std::unique_ptr<ExplainStatement> 
+auto Binder::BindExplainStmt(duckdb_libpgquery::PGExplainStmt *stmt) -> std::unique_ptr<ExplainStatement>
 {
     auto result = std::make_unique<ExplainStatement>();
     auto explain_type = ExplainType::EXPLAIN_STANDARD;
@@ -651,7 +655,6 @@ auto Binder::BindCommentOn(duckdb_libpgquery::PGCommentStmt *stmt) -> std::uniqu
         if (obj_decode_list.size() == OBJ_LIST_1ARG) {
             result->user_name = user_;
             result->table_name = obj_decode_list[0];
-
         } else if (obj_decode_list.size() == OBJ_LIST_2ARG) {
             result->user_name = obj_decode_list[0];
             result->table_name = obj_decode_list[1];

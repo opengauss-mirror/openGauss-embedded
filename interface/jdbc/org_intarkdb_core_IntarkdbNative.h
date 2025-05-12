@@ -130,7 +130,7 @@ JNIEXPORT jstring JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1value_
  * Signature: (Ljava/nio/ByteBuffer;JJ)Ljava/nio/ByteBuffer;
  */
 JNIEXPORT jbyteArray JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1value_1blob(JNIEnv *env, jclass cls,
-    jobject result, 
+    jobject result,
     jlong row,
     jlong col);
 
@@ -216,7 +216,7 @@ JNIEXPORT jboolean JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1is_1s
  * Signature: (Ljava/nio/ByteBuffer;Z)V
  */
 JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1need_1result_1ex(JNIEnv *env, jclass cls,
-    jobject result, 
+    jobject result,
     jboolean need);
 
 /*
@@ -225,7 +225,7 @@ JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1need_1res
  * Signature: (Ljava/nio/ByteBuffer;J)I
  */
 JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1start_1remote(JNIEnv *env, jclass cls,
-    jstring dbname, 
+    jstring dbname,
     jstring location,
     jlong port);
 
@@ -271,9 +271,9 @@ JNIEXPORT void JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1disconnec
  * Method:    intarkdb_kv_set
  * Signature: (Ljava/nio/ByteBuffer;Ljava/lang/String;Ljava/nio/ByteBuffer;)I
  */
-JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1set(JNIEnv *env, 
+JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1set(JNIEnv *env,
     jclass cls,
-    jobject connection, 
+    jobject connection,
     jstring key,
     jstring val)
 
@@ -282,9 +282,9 @@ JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1set(J
  * Method:    intarkdb_kv_get
  * Signature: (Ljava/nio/ByteBuffer;Ljava/lang/String;Ljava/nio/ByteBuffer;)I
  */
-JNIEXPORT jstring JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1get(JNIEnv *env, 
+JNIEXPORT jstring JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1get(JNIEnv *env,
     jclass cls,
-    jobject connection, 
+    jobject connection,
     jstring key);
 
 /*
@@ -293,7 +293,7 @@ JNIEXPORT jstring JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1ge
  * Signature: (Ljava/nio/ByteBuffer;Ljava/lang/String;Ljava/nio/ByteBuffer;)I
  */
 JNIEXPORT jint JNICALL Java_org_intarkdb_core_IntarkdbNative_intarkdb_1kv_1del(JNIEnv *env, jclass cls,
-    jobject connection, 
+    jobject connection,
     jstring key);
 
 /*

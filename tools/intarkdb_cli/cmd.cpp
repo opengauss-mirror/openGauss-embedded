@@ -1112,7 +1112,7 @@ auto ClassCmd::IsFinishQuery(const std::string &query) -> bool {
     if (query[0] == '.') {
         return true;
     }
-    //todo:和SplitSQLStrings结合起来统一处理
+    
     bool inQuote = false;
     bool inDoublequotes = false;
     if (query.length() > 0) {

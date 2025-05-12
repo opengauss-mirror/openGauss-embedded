@@ -46,7 +46,8 @@ auto DropExec::Execute() const -> RecordBatch {
         case ObjectType::SYNONYM:
             return DropSynonym();
         default:
-            throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,"physical plan drop type not implemented yet");
+            throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
+                "physical plan drop type not implemented yet");
     }
 
     auto storage = catalog_.GetStorageHandle();

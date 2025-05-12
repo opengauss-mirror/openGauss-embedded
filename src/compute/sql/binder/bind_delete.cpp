@@ -25,7 +25,7 @@
 #include "binder/expressions/bound_constant.h"
 #include "common/null_check_ptr.h"
 
-auto Binder::BindDeleteStmt(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::unique_ptr<DeleteStatement> 
+auto Binder::BindDeleteStmt(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::unique_ptr<DeleteStatement>
 {
     auto result = std::make_unique<DeleteStatement>();
     // relation
@@ -33,7 +33,7 @@ auto Binder::BindDeleteStmt(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::uniqu
     if (stmt->relation->alias != nullptr) {
         result->target_table =
             BindBaseTableRef(schema_name, stmt->relation->relname,
-                       std::make_optional(stmt->relation->alias->aliasname));
+                      std::make_optional(stmt->relation->alias->aliasname));
     } else {
         result->target_table = BindBaseTableRef(schema_name, stmt->relation->relname, std::nullopt);
     }
@@ -48,7 +48,7 @@ auto Binder::BindDeleteStmt(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::uniqu
     std::string obj_name = result->target_table->GetBoundTableName();
     if (catalog_.CheckPrivilege(obj_user, obj_name, OBJ_TYPE_TABLE, GS_PRIV_DELETE) != GS_TRUE) {
         throw intarkdb::Exception(ExceptionType::BINDER,
-                            fmt::format("{}.{} delete permission denied!", obj_user, obj_name));
+            fmt::format("{}.{} delete permission denied!", obj_user, obj_name));
     }
     // check privileges again (for example : synonym)
     const auto &table_info = result->target_table->GetTableInfo();
@@ -58,7 +58,7 @@ auto Binder::BindDeleteStmt(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::uniqu
         std::string real_obj_user = catalog_.GetUserName(uid);
         if (catalog_.CheckPrivilege(real_obj_user, real_obj_name, OBJ_TYPE_TABLE, GS_PRIV_DELETE) != GS_TRUE) {
             throw intarkdb::Exception(ExceptionType::BINDER,
-                                fmt::format("{}.{} delete permission denied!", real_obj_user, real_obj_name));
+                fmt::format("{}.{} delete permission denied!", real_obj_user, real_obj_name));
         }
     }
 
@@ -71,7 +71,7 @@ auto Binder::BindDeleteStmt(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::uniqu
     AddRelatedTables(std::string(table_info.GetTableName()), table_info.IsTimeScale(), true);
 
     if (result->target_table->GetSpaceId() != SQL_SPACE_TYPE_USERS) {
-        throw intarkdb::Exception(ExceptionType::BINDER, 
+        throw intarkdb::Exception(ExceptionType::BINDER,
             fmt::format("Cannot delete from system table : {}", result->target_table->GetBoundTableName()));
     }
 

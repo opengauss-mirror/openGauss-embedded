@@ -27,7 +27,7 @@
 #include "common/null_check_ptr.h"
 #include "common/string_util.h"
 
-auto Binder::BindInsertStmt(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique_ptr<InsertStatement> 
+auto Binder::BindInsertStmt(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::unique_ptr<InsertStatement>
 {
     if (!pg_stmt->selectStmt) {
         throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "DEFAULT VALUES clause is not supported!");
@@ -47,7 +47,6 @@ auto Binder::BindInsertStmt(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::un
             opt_or_action = ONCONFLICT_ALIAS_IGNORE;
         } else {
             opt_or_action = ONCONFLICT_ALIAS_NONE;
-            // throw intarkdb::Exception(ExceptionType::BINDER, "Bad onconflict alias, not support!");  // TODO
         }
     }
 
@@ -91,7 +90,7 @@ auto Binder::BindInsertStmt(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::un
     std::string obj_name = base_table->GetBoundTableName();
     if (catalog_.CheckPrivilege(obj_user, obj_name, OBJ_TYPE_TABLE, GS_PRIV_INSERT) != GS_TRUE) {
         throw intarkdb::Exception(ExceptionType::BINDER,
-                                    fmt::format("{}.{} insert permission denied!", obj_user, obj_name));
+            fmt::format("{}.{} insert permission denied!", obj_user, obj_name));
     }
     // check privileges again (for example : synonym)
     std::string real_obj_name = std::string(table_info.GetTableName());
@@ -100,7 +99,7 @@ auto Binder::BindInsertStmt(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::un
         std::string real_obj_user = catalog_.GetUserName(uid);
         if (catalog_.CheckPrivilege(real_obj_user, real_obj_name, OBJ_TYPE_TABLE, GS_PRIV_INSERT) != GS_TRUE) {
             throw intarkdb::Exception(ExceptionType::BINDER,
-                                fmt::format("{}.{} insert permission denied!", real_obj_user, real_obj_name));
+                fmt::format("{}.{} insert permission denied!", real_obj_user, real_obj_name));
         }
     }
 
@@ -119,7 +118,6 @@ auto Binder::BindInsertStmt(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::un
             }
         }
         if (bound_columns.size() != column_names.size()) {
-            // FIXME: 找不到列名也会报这个错误
             throw std::runtime_error("Cannot explicitly insert columns");
         }
         // unbound defaults & bound defaults
@@ -177,7 +175,8 @@ auto Binder::BindInsertStmt(duckdb_libpgquery::PGInsertStmt *pg_stmt) -> std::un
         }
         if (!have_time_col && !meta_info.columns[part_key_slot].is_default) {
             throw std::runtime_error(
-                "timescale table must give the time column(" + std::string(meta_info.columns[part_key_slot].name.str) + ") value!");
+                "timescale table must give the time column("
+                + std::string(meta_info.columns[part_key_slot].name.str) + ") value!");
         }
     }
 

@@ -28,7 +28,7 @@
 
 // PGColumnDef -> Column , 列描述 -> 列实体
 auto Binder::BindColumnWtihDef(duckdb_libpgquery::PGColumnDef &cdef, uint16_t slot,
-                                std::vector<Constraint> &constraints) -> Column 
+                               std::vector<Constraint> &constraints) -> Column
 {
     if (cdef.collClause != nullptr) {
         // 表示列的排序规则，先不支持
@@ -144,7 +144,7 @@ auto Binder::BindMultiColConstraint(const duckdb_libpgquery::PGConstraint &const
             throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "not support check constraint yet!");
         }
         case duckdb_libpgquery::PG_CONSTR_FOREIGN: {
-            auto table_ref = 
+            auto table_ref =
                 BindRangeVarTableRef(*NullCheckPtrCast<duckdb_libpgquery::PGRangeVar>(constraint.pktable), false);
             auto base_table = static_cast<BoundBaseTable *>(table_ref.get());
             auto pk_user = base_table->GetSchema();
@@ -388,7 +388,7 @@ static auto HandleCreatePartionAndTimescale(duckdb_libpgquery::PGCreateStmt *pg_
     }
 }
 
-auto Binder::BindCreateStmt(duckdb_libpgquery::PGCreateStmt *pg_stmt) -> std::unique_ptr<CreateStatement> 
+auto Binder::BindCreateStmt(duckdb_libpgquery::PGCreateStmt *pg_stmt) -> std::unique_ptr<CreateStatement>
 {
     // CheckSysPrivilege
     if (catalog_.CheckSysPrivilege(CREATE_TABLE) != GS_TRUE) {

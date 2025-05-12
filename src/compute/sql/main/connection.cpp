@@ -176,7 +176,7 @@ std::vector<ParsedStatement> Connection::ParseStatementsInternal(const std::stri
     return stmts;
 }
 
-std::unique_ptr<BoundStatement> Connection::BindSQLStmt(const ParsedStatement& stmt, const std::string& query) 
+std::unique_ptr<BoundStatement> Connection::BindSQLStmt(const ParsedStatement& stmt, const std::string& query)
 {
 #ifdef ENABLE_PG_QUERY
     Binder binder = CreateBinder();
@@ -826,8 +826,8 @@ void Connection::ShowCreateTable(ShowStatement& stmt, RecordBatch& rb_out) {
     rb_out.AddRecord(Record(std::move(row_values)));
 }
 
-static inline void ShowPartitionInfo(const exp_table_meta &table_meta, std::stringstream &sschema, 
-    std::stringstream &sErr) 
+static inline void ShowPartitionInfo(const exp_table_meta &table_meta, std::stringstream &sschema,
+    std::stringstream &sErr)
 {
     sschema << "\n";
     const exp_part_table_t *part_table = &table_meta.part_table;
@@ -868,7 +868,8 @@ static inline void ShowPartitionInfo(const exp_table_meta &table_meta, std::stri
 static void ShowCreateTableForIndex(const exp_table_meta &table_meta, std::stringstream &sschema,
                                     std::stringstream &sErr,
                                     std::vector<std::string>& index_sqls,
-                                    std::vector<uint16>& primary_col_ids) {
+                                    std::vector<uint16>& primary_col_ids)
+{
     for (size_t i = 0; i < table_meta.index_count; i++) {
         auto index = table_meta.indexes[i];
         bool bIndexSQL = true;
@@ -896,12 +897,13 @@ static void ShowCreateTableForIndex(const exp_table_meta &table_meta, std::strin
 }
 
 static void ShowCreateTableForComment(const exp_table_meta &table_meta,
-                                    RecordBatch &rb_comment,
-                                    std::string &table_comment,
-                                    bool32 &is_table_comment,
-                                    std::stringstream &sschema,
-                                    std::stringstream &sErr,
-                                    exp_column_def_t &column) {
+    RecordBatch &rb_comment,
+    std::string &table_comment,
+    bool32 &is_table_comment,
+    std::stringstream &sschema,
+    std::stringstream &sErr,
+    exp_column_def_t &column)
+{
     // COMMENT
     {
         auto col_slot = std::to_string(column.col_slot);
@@ -923,14 +925,16 @@ static void ShowCreateTableForComment(const exp_table_meta &table_meta,
     }
 }
 
-static void ShowCreateTableForColumn(const exp_table_meta &table_meta,
-                                    RecordBatch &rb_comment,
-                                    std::string &table_comment,
-                                    bool32 &is_table_comment,
-                                    std::stringstream &sschema,
-                                    std::stringstream &sErr,
-                                    std::vector<std::string>& index_sqls,
-                                    std::vector<uint16>& primary_col_ids) {
+static void ShowCreateTableForColumn(
+    const exp_table_meta &table_meta,
+    RecordBatch &rb_comment,
+    std::string &table_comment,
+    bool32 &is_table_comment,
+    std::stringstream &sschema,
+    std::stringstream &sErr,
+    std::vector<std::string>& index_sqls,
+    std::vector<uint16>& primary_col_ids)
+{
     for (size_t i = 0; i < table_meta.column_count; i++) {
         auto column = table_meta.columns[i];
         sschema << column.name.str << " ";
@@ -981,7 +985,8 @@ std::string Connection::ShowCreateTable(const std::string& table_name, std::vect
     auto rb = Query(sql.c_str());
 
     // column
-    ShowCreateTableForColumn(table_meta, *rb, table_comment, is_table_comment, sschema, sErr, index_sqls, primary_col_ids);
+    ShowCreateTableForColumn(table_meta, *rb, table_comment, is_table_comment,
+        sschema, sErr, index_sqls, primary_col_ids);
 
     if (primary_col_ids.size() > 1) {
         sschema << ", PRIMARY KEY (";
@@ -1110,7 +1115,7 @@ std::string GetColString(std::vector<std::string> col_names) {
     return result;
 }
 
-static std::string GetSubstring(const std::string& str) 
+static std::string GetSubstring(const std::string& str)
 {
     std::string result;
     auto low_str = intarkdb::StringUtil::Lower(str);
@@ -1119,7 +1124,7 @@ static std::string GetSubstring(const std::string& str)
     return result;
 }
 
-static std::string GetAggSql(const std::string& sql, const std::string& bucket_field) 
+static std::string GetAggSql(const std::string& sql, const std::string& bucket_field)
 {
     std::string result;
     auto low_sql = intarkdb::StringUtil::Lower(sql);
@@ -1131,19 +1136,19 @@ static std::string GetAggSql(const std::string& sql, const std::string& bucket_f
     }
     constexpr size_t WHERE_LEN = 5; // "where" length
     std::regex pattern(R"(^\s+|\s+$)");
-    if (low_sql.find("cw_scrap_rate") != std::string::npos 
+    if (low_sql.find("cw_scrap_rate") != std::string::npos
         || low_sql.find("cw_complete_rate") != std::string::npos) {
         result = sql;
     } else {
         result = sql.substr(0, pos - 1) + ", max(" +
-             std::regex_replace(sql.substr(pos_start + WHERE_LEN, pos_end - pos_start - WHERE_LEN - 1), 
-                pattern, "") + ") as " +
-             bucket_field + " " + sql.substr(pos);
+            std::regex_replace(sql.substr(pos_start + WHERE_LEN, pos_end - pos_start - WHERE_LEN - 1),
+                pattern, "") + ") as " + bucket_field
+                + " " + sql.substr(pos);
     }
     return result;
 }
 
-static std::string GetTableName(const std::string& sql) 
+static std::string GetTableName(const std::string& sql)
 {
     std::string table_name;
     auto low_sql = intarkdb::StringUtil::Lower(sql);

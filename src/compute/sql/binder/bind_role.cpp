@@ -57,7 +57,7 @@ auto BindCreateRoleInternal(duckdb_libpgquery::PGCreateRoleStmt *stmt) -> std::u
                     throw intarkdb::Exception(ExceptionType::BINDER, "bad defaction");
                 }
             } else {
-                throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, 
+                throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
                     fmt::format("item->type {}", Binder::ConvertNodeTagToString(item->type)));
             }
         }

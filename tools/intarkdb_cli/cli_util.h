@@ -22,5 +22,5 @@
  */
 #pragma once
 
-std::string trim(const std::string& str);
+std::string Trim(const std::string& str);
 std::vector<std::string> SplitSQLStrings(const std::string& sql);

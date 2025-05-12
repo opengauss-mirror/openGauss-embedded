@@ -33,9 +33,11 @@
 
 using duckdb_libpgquery::PGCreateTableAsStmt;
 
-static auto CheckUnSupportedFeature(PGCreateTableAsStmt &ctas_stmt) -> void {
+static auto CheckUnSupportedFeature(PGCreateTableAsStmt &ctas_stmt) -> void
+{
     if (ctas_stmt.onconflict == duckdb_libpgquery::PG_REPLACE_ON_CONFLICT) {
-        throw intarkdb::Exception(ExceptionType::BINDER,"Replace expr is not supported in create-table-as-select sql!");
+        throw intarkdb::Exception(ExceptionType::BINDER,
+            "Replace expr is not supported in create-table-as-select sql!");
     }
     if (ctas_stmt.relkind == duckdb_libpgquery::PG_OBJECT_MATVIEW) {
         throw intarkdb::Exception(ExceptionType::BINDER, "Unsupport Materialized view in create-table-as-select sql!");
@@ -45,7 +47,8 @@ static auto CheckUnSupportedFeature(PGCreateTableAsStmt &ctas_stmt) -> void {
     }
     
     if (ctas_stmt.query->type != duckdb_libpgquery::T_PGSelectStmt) {
-        throw intarkdb::Exception(ExceptionType::BINDER, "Only select statement is supported in create-table-as-select sql!");
+        throw intarkdb::Exception(ExceptionType::BINDER,
+            "Only select statement is supported in create-table-as-select sql!");
     }
 }
 
