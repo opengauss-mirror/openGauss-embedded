@@ -34,7 +34,7 @@
 
 class ConnectionForUpdateDeleteTest : public ::testing::Test
 {
-   protected:
+protected:
     ConnectionForUpdateDeleteTest() {}
     ~ConnectionForUpdateDeleteTest() {}
     static void SetUpTestSuite() {

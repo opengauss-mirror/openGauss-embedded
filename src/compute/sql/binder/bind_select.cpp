@@ -241,7 +241,8 @@ auto Binder::BindSelectSetOp(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::u
     return select_stmt;
 }
 
-auto Binder::BindSelectStmt(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::unique_ptr<SelectStatement> {
+auto Binder::BindSelectStmt(duckdb_libpgquery::PGSelectStmt *pg_stmt) -> std::unique_ptr<SelectStatement>
+{
     // 检查不支持的语法元素
     CheckUnSupportedFeature(*pg_stmt);
 
@@ -296,7 +297,8 @@ auto Binder::BindSortItems(duckdb_libpgquery::PGList *list,
 }
 
 auto Binder::BindLimitClause(duckdb_libpgquery::PGNode *limit, duckdb_libpgquery::PGNode *offset)
-    -> std::unique_ptr<LimitClause> {
+    -> std::unique_ptr<LimitClause>
+{
     std::unique_ptr<LimitClause> limit_clause = nullptr;
     if (limit || offset) {
         limit_clause = std::make_unique<LimitClause>();
@@ -326,11 +328,13 @@ auto Binder::BindLimitOffset(duckdb_libpgquery::PGNode *root) -> std::unique_ptr
     return expr;
 }
 
-auto Binder::BindHavingClause(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression> {
+auto Binder::BindHavingClause(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>
+{
     return BindExpression(root, 1);
 }
 
-auto Binder::BindGroupByClause(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>> {
+auto Binder::BindGroupByClause(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>>
+{
     std::vector<std::unique_ptr<BoundExpression>> group_by_list;
     if (list) {
         for (auto node = list->head; node != nullptr; node = lnext(node)) {
@@ -362,7 +366,8 @@ auto Binder::BindGroupByExpression(duckdb_libpgquery::PGNode *node) -> std::uniq
     return expr;
 }
 
-auto Binder::BindWhereClause(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression> {
+auto Binder::BindWhereClause(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>
+{
     auto expr = BindExpression(root, 1);
     if (expr) {
         // where 表达式中含有*，这种情况pg的语法解释不能过滤掉

@@ -33,7 +33,7 @@ auto Binder::BindDeleteStmt(duckdb_libpgquery::PGDeleteStmt *stmt) -> std::uniqu
     if (stmt->relation->alias != nullptr) {
         result->target_table =
             BindBaseTableRef(schema_name, stmt->relation->relname,
-                      std::make_optional(stmt->relation->alias->aliasname));
+                std::make_optional(stmt->relation->alias->aliasname));
     } else {
         result->target_table = BindBaseTableRef(schema_name, stmt->relation->relname, std::nullopt);
     }

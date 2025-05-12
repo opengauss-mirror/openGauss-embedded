@@ -117,7 +117,8 @@ class Binder {
     auto BindRangeVarTableRef(const duckdb_libpgquery::PGRangeVar &table_ref, bool is_select = true)
         -> std::unique_ptr<BoundQuerySource>;
     auto BindJoinTableRef(const duckdb_libpgquery::PGJoinExpr &node) -> std::unique_ptr<BoundQuerySource>;
-    auto BindRangeSubselectTableRef(const duckdb_libpgquery::PGRangeSubselect &node) -> std::unique_ptr<BoundQuerySource>;
+    auto BindRangeSubselectTableRef(const duckdb_libpgquery::PGRangeSubselect &node)
+        -> std::unique_ptr<BoundQuerySource>;
     auto BindBaseTableRef(const std::string &schema_name, const std::string &table_name,
                           std::optional<std::string> &&alias, bool if_exists = false)
         -> std::unique_ptr<BoundBaseTable>;
@@ -141,7 +142,8 @@ class Binder {
     auto BindGroupByClause(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>>;
     auto BindGroupByExpression(duckdb_libpgquery::PGNode *node) -> std::unique_ptr<BoundExpression>;
     auto BindHavingClause(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>;
-    auto BindLimitClause(duckdb_libpgquery::PGNode *limit, duckdb_libpgquery::PGNode *offset) -> std::unique_ptr<LimitClause>;
+    auto BindLimitClause(duckdb_libpgquery::PGNode *limit, duckdb_libpgquery::PGNode *offset)
+        -> std::unique_ptr<LimitClause>;
     auto BindLimitOffset(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>;
     auto BindLimitCount(duckdb_libpgquery::PGNode *root) -> std::unique_ptr<BoundExpression>;
     auto BindSortItems(duckdb_libpgquery::PGList *list, const std::vector<std::unique_ptr<BoundExpression>> &)
