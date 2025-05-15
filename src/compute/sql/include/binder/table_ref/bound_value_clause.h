@@ -25,11 +25,11 @@
 #include <vector>
 
 #include "binder/bound_expression.h"
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 
-class BoundValueClause : public BoundTableRef {
+class BoundValueClause : public BoundQuerySource {
    public:
-    explicit BoundValueClause() : BoundTableRef(DataSourceType::VALUE_CLAUSE){};
+    explicit BoundValueClause() : BoundQuerySource(DataSourceType::VALUE_CLAUSE){};
 
     auto ToString() const -> std::string override { return "VALUE CLAUSE"; }
 

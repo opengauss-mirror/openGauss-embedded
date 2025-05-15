@@ -24,17 +24,7 @@ AlterTableStmt:
 					n->missing_ok = true;
 					$$ = (PGNode *)n;
 				}
-		|	ALTER TABLE relation_expr OptComment
-				{
-					PGAlterTableStmt *n = makeNode(PGAlterTableStmt);
-
-					n->relation = $3;
-					n->comment = $4;
-					n->relkind = PG_OBJECT_TABLE;
-					n->missing_ok = false;
-					$$ = (PGNode *) n;
-				}
-        |	ALTER TABLE relation_expr partition_cmds
+		|	ALTER TABLE relation_expr partition_cmds
 				{
 					PGAlterTableStmt *n = makeNode(PGAlterTableStmt);
 

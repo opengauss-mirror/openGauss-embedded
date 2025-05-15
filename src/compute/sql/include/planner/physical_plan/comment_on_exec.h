@@ -26,8 +26,8 @@
 #include "planner/physical_plan/physical_plan.h"
 
 class CommentOnExec : public PhysicalPlan {
-   public:
-    CommentOnExec(Catalog *catalog, PGObjectType obj_type, const std::string &user,
+public:
+    CommentOnExec(Catalog *catalog, ObjectType obj_type, const std::string &user,
         const std::string &table, const std::string &column, const std::string &comment_str)
         : catalog_(catalog),
         object_type_(obj_type),
@@ -46,10 +46,9 @@ class CommentOnExec : public PhysicalPlan {
 
     virtual auto Next() -> std::tuple<Record, knl_cursor_t*, bool> override { return {}; }
 
-
-   private:
+private:
     Catalog *catalog_;
-    PGObjectType object_type_;
+    ObjectType object_type_;
 
     std::string user_name;
     std::string table_name;

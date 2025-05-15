@@ -1,6 +1,5 @@
 /*
- * Copyright (c) GBA-NCTI-ISDC. 2022-2024.
- *
+ * 版权所有 (c) GBA-NCTI-ISDC 2022-2024
  * openGauss embedded is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
@@ -13,16 +12,17 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
  *
- * bound_table_ref.cpp
+ * bound_query_source.cpp
  *
  * IDENTIFICATION
- * openGauss-embedded/src/compute/sql/binder/bound_table_ref.cpp
+ * openGauss-embedded/src/compute/sql/binder/bound_query_source.cpp
  *
  * -------------------------------------------------------------------------
  */
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 
-auto DataSourceTypeToString(DataSourceType type) -> std::string_view {
+auto DataSourceTypeToString(DataSourceType type) -> std::string_view
+{
     switch (type) {
         case DataSourceType::INVALID:
             return "Invalid";

@@ -58,7 +58,7 @@ auto BindCreateRoleInternal(duckdb_libpgquery::PGCreateRoleStmt *stmt) -> std::u
                 }
             } else {
                 throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                            fmt::format("item->type {}", Binder::NodeTagToString(item->type)));
+                    fmt::format("item->type {}", Binder::ConvertNodeTagToString(item->type)));
             }
         }
     }
@@ -99,7 +99,7 @@ auto BindCreateUserInternal(duckdb_libpgquery::PGCreateRoleStmt *stmt) -> std::u
                 }
             } else {
                 throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                            fmt::format("item->type {}", Binder::NodeTagToString(item->type)));
+                    fmt::format("item->type {}", Binder::ConvertNodeTagToString(item->type)));
             }
         }
     }
@@ -122,13 +122,13 @@ auto Binder::BindCreateRole(duckdb_libpgquery::PGCreateRoleStmt *stmt) -> std::u
             // CheckSysPrivilege
             if (catalog_.CheckSysPrivilege(CREATE_ROLE) != GS_TRUE) {
                 throw intarkdb::Exception(ExceptionType::BINDER,
-                                        fmt::format("user {} create role permission denied!", user_));
+                    fmt::format("user {} create role permission denied!", user_));
             }
             return BindCreateRoleInternal(stmt);
         case duckdb_libpgquery::PGRoleStmtType::ROLESTMT_USER:
             if (catalog_.CheckSysPrivilege(CREATE_USER) != GS_TRUE) {
                 throw intarkdb::Exception(ExceptionType::BINDER,
-                                        fmt::format("user {} create user permission denied!", user_));
+                    fmt::format("user {} create user permission denied!", user_));
             }
             return BindCreateUserInternal(stmt);
         case duckdb_libpgquery::PGRoleStmtType::ROLESTMT_GROUP:
@@ -159,11 +159,11 @@ auto Binder::BindAlterRole(duckdb_libpgquery::PGAlterRoleStmt *stmt) -> std::uni
         // check if is current user
         if (result->name != user_) {
             throw intarkdb::Exception(ExceptionType::BINDER,
-                                    fmt::format("user {} alter other user permission denied!", user_));
+                fmt::format("user {} alter other user permission denied!", user_));
         }
     } else {
         throw intarkdb::Exception(ExceptionType::BINDER,
-                                    fmt::format("user {} alter user/role permission denied!", user_));
+            fmt::format("user {} alter user/role permission denied!", user_));
     }
 
     auto list = stmt->options;
@@ -192,7 +192,7 @@ auto Binder::BindAlterRole(duckdb_libpgquery::PGAlterRoleStmt *stmt) -> std::uni
                 }
             } else {
                 throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                            fmt::format("item->type {}", Binder::NodeTagToString(item->type)));
+                    fmt::format("item->type {}", Binder::ConvertNodeTagToString(item->type)));
             }
         }
     }
@@ -211,14 +211,14 @@ auto Binder::BindDropRole(duckdb_libpgquery::PGDropRoleStmt *stmt) -> std::uniqu
             // CheckSysPrivilege
             if (catalog_.CheckSysPrivilege(DROP_ANY_ROLE) != GS_TRUE) {
                 throw intarkdb::Exception(ExceptionType::BINDER,
-                                        fmt::format("user {} drop role permission denied!", user_));
+                    fmt::format("user {} drop role permission denied!", user_));
             }
             result->role_stmt_type = RoleStmtType::ROLE_STMT_ROLE;
             break;
         case duckdb_libpgquery::PGRoleStmtType::ROLESTMT_USER:
             if (catalog_.CheckSysPrivilege(DROP_USER) != GS_TRUE) {
                 throw intarkdb::Exception(ExceptionType::BINDER,
-                                        fmt::format("user {} drop user permission denied!", user_));
+                    fmt::format("user {} drop user permission denied!", user_));
             }
             result->role_stmt_type = RoleStmtType::ROLE_STMT_USER;
             break;
@@ -247,7 +247,7 @@ auto Binder::BindDropRole(duckdb_libpgquery::PGDropRoleStmt *stmt) -> std::uniqu
                 result->roles.push_back(role_spec->rolename);
             } else {
                 throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                            fmt::format("role spec roletype {}", NodeTagToString(item->type)));
+                    fmt::format("role spec roletype {}", ConvertNodeTagToString(item->type)));
             }
         }
     }
@@ -260,7 +260,7 @@ auto Binder::BindGrantRole(duckdb_libpgquery::PGGrantRoleStmt *stmt) -> std::uni
     // CheckSysPrivilege
     if (catalog_.CheckSysPrivilege(GRANT_ANY_ROLE) != GS_TRUE) {
         throw intarkdb::Exception(ExceptionType::BINDER,
-                                fmt::format("user {} grant/revoke role permission denied!", user_));
+            fmt::format("user {} grant/revoke role permission denied!", user_));
     }
 
     auto result = std::make_unique<GrantRoleStatement>();
@@ -278,7 +278,7 @@ auto Binder::BindGrantRole(duckdb_libpgquery::PGGrantRoleStmt *stmt) -> std::uni
                 result->granted_roles.push_back(priv->priv_name);
             } else {
                 throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                            fmt::format("role spec roletype {}", NodeTagToString(item->type)));
+                    fmt::format("role spec roletype {}", ConvertNodeTagToString(item->type)));
             }
         }
     }
@@ -296,7 +296,7 @@ auto Binder::BindGrantRole(duckdb_libpgquery::PGGrantRoleStmt *stmt) -> std::uni
                 }
             } else {
                 throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                            fmt::format("role spec roletype {}", NodeTagToString(item->type)));
+                    fmt::format("role spec roletype {}", ConvertNodeTagToString(item->type)));
             }
         }
     }
@@ -318,7 +318,7 @@ auto Binder::BindGrant(duckdb_libpgquery::PGGrantStmt *stmt) -> std::unique_ptr<
     // CheckSysPrivilege
     if (catalog_.CheckSysPrivilege(GRANT_ANY_OBJECT_PRIVILEGE) != GS_TRUE) {
         throw intarkdb::Exception(ExceptionType::BINDER,
-                                fmt::format("user {} grant/revoke object permission denied!", user_));
+            fmt::format("user {} grant/revoke object permission denied!", user_));
     }
 
     auto result = std::make_unique<GrantStatement>();
@@ -332,7 +332,7 @@ auto Binder::BindGrant(duckdb_libpgquery::PGGrantStmt *stmt) -> std::unique_ptr<
             break;
         default:
             throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                            fmt::format("target type {} not support, must be (some object or all)", result->target_type));
+                fmt::format("target type {} not support, must be (some object or all)", result->target_type));
             break;
     }
     result->obj_type = stmt->objtype;
@@ -342,7 +342,7 @@ auto Binder::BindGrant(duckdb_libpgquery::PGGrantStmt *stmt) -> std::unique_ptr<
             break;
         default:
             throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                            fmt::format("objects type {} not support, must be (table/view or schema)", result->obj_type));
+                fmt::format("objects type {} not support, must be (table/view or schema)", result->obj_type));
             break;
     }
 
@@ -353,7 +353,7 @@ auto Binder::BindGrant(duckdb_libpgquery::PGGrantStmt *stmt) -> std::unique_ptr<
             auto item = NullCheckPtrCast<duckdb_libpgquery::PGNode>(node->data.ptr_value);
             if (item->type == duckdb_libpgquery::T_PGRangeVar) {
                 auto var = NullCheckPtrCast<duckdb_libpgquery::PGRangeVar>(item.get());
-                auto table_ref = BindRangeVar((const duckdb_libpgquery::PGRangeVar &)(*var), false);
+                auto table_ref = BindRangeVarTableRef((const duckdb_libpgquery::PGRangeVar &)(*var), false);
 
                 std::string schema = var->schemaname ? var->schemaname : user_;
                 result->schemas.push_back(schema);
@@ -364,7 +364,7 @@ auto Binder::BindGrant(duckdb_libpgquery::PGGrantStmt *stmt) -> std::unique_ptr<
                 result->objects.push_back(var->val.str);    // in db_grant_userpriv_to_user objname is user
             } else {
                 throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                            fmt::format("revoke objects type {} not support", NodeTagToString(item->type)));
+                    fmt::format("revoke objects type {} not support", ConvertNodeTagToString(item->type)));
             }
         }
     }
@@ -380,7 +380,7 @@ auto Binder::BindGrant(duckdb_libpgquery::PGGrantStmt *stmt) -> std::unique_ptr<
                 result->privileges.push_back(upper_name);
             } else {
                 throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                            fmt::format("revoke privileges type {}", NodeTagToString(item->type)));
+                    fmt::format("revoke privileges type {}", ConvertNodeTagToString(item->type)));
             }
         }
     } else {
@@ -402,7 +402,7 @@ auto Binder::BindGrant(duckdb_libpgquery::PGGrantStmt *stmt) -> std::unique_ptr<
                 result->grantees.push_back(role_spec->rolename);
             } else {
                 throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                            fmt::format("role spec roletype {}", NodeTagToString(item->type)));
+                    fmt::format("role spec roletype {}", ConvertNodeTagToString(item->type)));
             }
         }
     }
