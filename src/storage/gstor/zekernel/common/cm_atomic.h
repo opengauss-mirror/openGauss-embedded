@@ -85,10 +85,10 @@ static inline bool32 cm_atomic32_cas(atomic32_t *val, int32 oldval, int32 newval
 
 typedef volatile int32 atomic32_t;
 typedef volatile int64 atomic_t;
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv) || defined(__riscv__)
 static inline int64 cm_atomic_get(atomic_t *val)
 {
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(__riscv64) || defined(__riscv)
 //     return __atomic_load_n(val, __ATOMIC_SEQ_CST);
     return *val;
 #else
@@ -98,7 +98,7 @@ static inline int64 cm_atomic_get(atomic_t *val)
 
 static inline int64 cm_atomic_set(atomic_t *val, int64 value)
 {
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(__riscv64) || defined(__riscv)
     //  __atomic_store_n(val, value, __ATOMIC_SEQ_CST);
     *val = value;
 #else

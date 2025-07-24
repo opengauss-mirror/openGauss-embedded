@@ -68,6 +68,11 @@ extern "C" {
         __sync_synchronize(); \
     }
 #endif
+#elif defined(__riscv) || defined(__riscv__)
+#define CM_MFENCE                                 \
+    {                                             \
+        __sync_synchronize(); \
+    }
 #else
 #define CM_MFENCE                                \
     {                                            \

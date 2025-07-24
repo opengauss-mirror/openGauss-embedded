@@ -38,17 +38,8 @@ struct TryMinusOpWithOverflowCheck {
     template <typename T>
     static inline bool Operation(T a, T b, T& c) {
         if (std::is_signed<T>::value) {
-#ifdef _MSC_VER
-            if (b > 0 && a < std::numeric_limits<T>::lowest() + b) {
-                return false;  // 会下溢
-            }
-#else
-            if (b > 0 && a < std::numeric_limits<T>::min() + b) {
-                return false;  // 会下溢
-            }
-#endif
-            if (b < 0 && a > std::numeric_limits<T>::max() + b) {
-                return false;  // 会上溢
+            if ((a >= 0 && b < 0 && a - b < 0) || (a < 0 && b >= 0 && a - b > 0)) {
+                return false;
             }
         } else {
             if (a < b) {
@@ -58,6 +49,7 @@ struct TryMinusOpWithOverflowCheck {
         c = a - b;
         return true;
     }
+
 };
 
 template<>
@@ -67,7 +59,7 @@ template<>
 bool TryMinusOpWithOverflowCheck::Operation(double a, double b, double& c);
 
 template<>
-bool TryMinusOpWithOverflowCheck::Operation(hugeint_t a, hugeint_t b, hugeint_t& c);
+bool TryMinusOpWithOverflowCheck::Operation(hugeint_t a, hugeint_t b, int64_t& c);
 
 template <>
 bool TryMinusOpWithOverflowCheck::Operation(date_stor_t a, int64_t b, date_stor_t& c);

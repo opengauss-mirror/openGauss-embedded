@@ -35,7 +35,7 @@ using FuncType = std::function<Value(const std::vector<Value>&)>;
 
 struct FuncInfo {
     FuncType func;
-    LogicalType return_type;
+    GStorDataType return_type;
 };
 
 class SQLFunction {

@@ -458,9 +458,6 @@ int32_t TableDataSource::AutoAddPartition(std::string table_name, std::string pa
         throw std::runtime_error(err_msg);
     }
 
-    // must open table again for DC
-    OpenStorageTable(table_name);
-
     return part_no;
 }
 

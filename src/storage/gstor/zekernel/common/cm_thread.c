@@ -320,6 +320,8 @@ uint32 cm_get_current_thread_id()
 #define __SYS_GET_SPID 186
 #elif (defined __aarch64__)
 #define __SYS_GET_SPID 178
+#elif (defined __riscv) || (defined __riscv__)
+#define __SYS_GET_SPID 178  // RISC-V中gettid系统调用号与ARM64相同
 #else
 #define __SYS_GET_SPID 178
 #endif

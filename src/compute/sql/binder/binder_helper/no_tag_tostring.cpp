@@ -21,8 +21,7 @@
 //===----------------------------------------------------------------------===//
 #include "binder/binder.h"
 
-auto Binder::ConvertNodeTagToString(duckdb_libpgquery::PGNodeTag type) -> std::string
-{
+auto Binder::NodeTagToString(duckdb_libpgquery::PGNodeTag type) -> std::string {
     switch (type) {
         case duckdb_libpgquery::T_PGInvalid:
             return "T_Invalid";

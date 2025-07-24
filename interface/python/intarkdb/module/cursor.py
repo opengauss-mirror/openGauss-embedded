@@ -410,7 +410,7 @@ class Cursor:
 
     # 类型转换
     def __typecode(self, val):
-        if isinstance(val, int):
+        if(type(val) == int):
             if(val >= -128 and val <= 127):
                 type_code = SQL_TYPE_TINYINT
             elif(val >= -32768 and val <= 32767):
@@ -419,15 +419,15 @@ class Cursor:
                 type_code = SQL_TYPE_INTEGER
             else:
                 type_code = SQL_TYPE_BIGINT
-        elif isinstance(val, bool):
+        elif(type(val) == bool):
             type_code = SQL_TYPE_BOOLEAN
-        elif isinstance(val, (float, Decimal)):
+        elif(type(val) == float or type(val) == Decimal):
             type_code = SQL_TYPE_REAL
-        elif isinstance(val, str):
+        elif(type(val) == str):
             type_code = SQL_TYPE_VARCHAR
-        elif isinstance(val, Date):
+        elif(type(val) == Date):
             type_code = SQL_TYPE_DATE
-        elif isinstance(val, Timestamp):
+        elif(type(val) == Timestamp):
             type_code = SQL_TYPE_TIMESTAMP
         else:
             type_code = None

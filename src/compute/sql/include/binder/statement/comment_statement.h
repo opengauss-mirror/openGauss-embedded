@@ -41,5 +41,5 @@ class CommentStatement : public BoundStatement {
     std::string column_name;
     std::string comment;
     
-    ObjectType object_type;
+    PGObjectType object_type_;
 };

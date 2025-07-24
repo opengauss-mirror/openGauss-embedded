@@ -37,7 +37,7 @@
 #include "binder/expressions/bound_cast.h"
 #include "binder/expressions/bound_column_def.h"
 #include "binder/expressions/bound_constant.h"
-#include "binder/expressions/bound_func_expr.h"
+#include "binder/expressions/bound_func_call.h"
 #include "binder/expressions/bound_like_op.h"
 #include "binder/expressions/bound_null_test.h"
 #include "binder/expressions/bound_parameter.h"
@@ -63,8 +63,7 @@
 #include "type/operator/cast_operators.h"
 #include "type/type_system.h"
 
-void Binder::ParseSQL(const std::string &query)
-{
+void Binder::ParseAndSave(const std::string &query) {
     bind_location = -1;
     parser_.Parse(query);
     if (!parser_.success) {
@@ -83,36 +82,35 @@ auto Binder::SaveParseResult(duckdb_libpgquery::PGList *tree) -> void {
     }
 }
 
-auto Binder::BindSQLStmt(duckdb_libpgquery::PGNode *stmt) -> std::unique_ptr<BoundStatement>
-{
+auto Binder::BindStatement(duckdb_libpgquery::PGNode *stmt) -> std::unique_ptr<BoundStatement> {
     std::unique_ptr<BoundStatement> result;
     if (stmt == nullptr) {
         throw intarkdb::Exception(ExceptionType::BINDER, "statement is nullptr");
     }
     switch (stmt->type) {
         case duckdb_libpgquery::T_PGRawStmt:
-            result = BindSQLStmt(NullCheckPtrCast<duckdb_libpgquery::PGRawStmt>(stmt)->stmt);
+            result = BindStatement(NullCheckPtrCast<duckdb_libpgquery::PGRawStmt>(stmt)->stmt);
             break;
         case duckdb_libpgquery::T_PGCreateStmt:
-            result = BindCreateStmt(reinterpret_cast<duckdb_libpgquery::PGCreateStmt *>(stmt));
+            result = BindCreate(reinterpret_cast<duckdb_libpgquery::PGCreateStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGInsertStmt:
-            result = BindInsertStmt(reinterpret_cast<duckdb_libpgquery::PGInsertStmt *>(stmt));
+            result = BindInsert(reinterpret_cast<duckdb_libpgquery::PGInsertStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGSelectStmt:
-            result = BindSelectStmt(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(stmt));
+            result = BindSelect(reinterpret_cast<duckdb_libpgquery::PGSelectStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGExplainStmt:
-            result = BindExplainStmt(reinterpret_cast<duckdb_libpgquery::PGExplainStmt *>(stmt));
+            result = BindExplain(reinterpret_cast<duckdb_libpgquery::PGExplainStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGCheckPointStmt:
             result = BindCheckPoint(reinterpret_cast<duckdb_libpgquery::PGCheckPointStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGDeleteStmt:
-            result = BindDeleteStmt(reinterpret_cast<duckdb_libpgquery::PGDeleteStmt *>(stmt));
+            result = BindDelete(reinterpret_cast<duckdb_libpgquery::PGDeleteStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGUpdateStmt:
-            result = BindUpdateStmt(reinterpret_cast<duckdb_libpgquery::PGUpdateStmt *>(stmt));
+            result = BindUpdate(reinterpret_cast<duckdb_libpgquery::PGUpdateStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGIndexStmt:
             result = BindCreateIndex(reinterpret_cast<duckdb_libpgquery::PGIndexStmt *>(stmt));
@@ -133,13 +131,13 @@ auto Binder::BindSQLStmt(duckdb_libpgquery::PGNode *stmt) -> std::unique_ptr<Bou
             result = BindRename(reinterpret_cast<duckdb_libpgquery::PGRenameStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGDropStmt:
-            result = BindDropStmt(reinterpret_cast<duckdb_libpgquery::PGDropStmt *>(stmt));
+            result = BindDrop(reinterpret_cast<duckdb_libpgquery::PGDropStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGCreateTableAsStmt:
             result = BindCtas(reinterpret_cast<duckdb_libpgquery::PGCreateTableAsStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGViewStmt:
-            result = BindCreateViewStmt(reinterpret_cast<duckdb_libpgquery::PGViewStmt *>(stmt));
+            result = BindCreateView(reinterpret_cast<duckdb_libpgquery::PGViewStmt *>(stmt));
             break;
         case duckdb_libpgquery::T_PGCreateSeqStmt:
             result = BindSequence(reinterpret_cast<duckdb_libpgquery::PGCreateSeqStmt *>(stmt));
@@ -155,7 +153,7 @@ auto Binder::BindSQLStmt(duckdb_libpgquery::PGNode *stmt) -> std::unique_ptr<Bou
             break;
         default:
             throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
-                                      "[not support statement]" + ConvertNodeTagToString(stmt->type));
+                                      "[not support statement]" + NodeTagToString(stmt->type));
     }
 
     result->props = stmt_props;
@@ -204,10 +202,10 @@ auto Binder::BoundExpressionToDefaultValue(BoundExpression &expr, Column &column
             break;
         }
         case ExpressionType::FUNC_CALL: {
-            auto &func_call_expr = static_cast<BoundFuncExpr &>(expr);
+            auto &func_call_expr = static_cast<BoundFuncCall &>(expr);
             const std::string &func_name = func_call_expr.ToString();
-            if (func_call_expr.funcname == "now" || func_call_expr.funcname == "current_date" ||
-                func_call_expr.funcname == "random") {
+            if (func_call_expr.func_name_ == "now" || func_call_expr.func_name_ == "current_date" ||
+                func_call_expr.func_name_ == "random") {
                 // 当前只支持上述可变值的函数
                 auto default_value_ptr = CreateDefaultValue(DefaultValueType::DEFAULT_VALUE_TYPE_FUNC,
                                                             func_name.length(), func_name.c_str());
@@ -218,7 +216,7 @@ auto Binder::BoundExpressionToDefaultValue(BoundExpression &expr, Column &column
                 throw intarkdb::Exception(
                     ExceptionType::CATALOG,
                     fmt::format("Column's({}) default expression type {} func_name {} is not supported ", column.Name(),
-                                expr.Type(), func_call_expr.funcname));
+                                expr.Type(), func_call_expr.func_name_));
             }
             break;
         }
@@ -230,16 +228,15 @@ auto Binder::BoundExpressionToDefaultValue(BoundExpression &expr, Column &column
     return default_value;
 }
 
-static auto CreateCrossJoin(std::unique_ptr<BoundQuerySource> left, std::unique_ptr<BoundQuerySource> right)
+static auto CreateCrossJoin(std::unique_ptr<BoundTableRef> left, std::unique_ptr<BoundTableRef> right)
     -> std::unique_ptr<BoundJoin> {
     return std::make_unique<BoundJoin>(JoinType::CrossJoin, std::move(left), std::move(right), nullptr);
 }
 
-auto Binder::BindFromClause(duckdb_libpgquery::PGList *list) -> std::unique_ptr<BoundQuerySource>
-{
+auto Binder::BindFrom(duckdb_libpgquery::PGList *list) -> std::unique_ptr<BoundTableRef> {
     if (list == nullptr) {
         // not table
-        return std::make_unique<BoundQuerySource>(DataSourceType::DUAL);
+        return std::make_unique<BoundTableRef>(DataSourceType::DUAL);
     }
 
     if (list->length == 1) {
@@ -278,8 +275,7 @@ auto Binder::BindTableAllColumns(const std::string &table_name) -> std::vector<s
     return columns;
 }
 
-auto Binder::BindAllColumnRefs(const char *expect_relation_name) -> std::vector<std::unique_ptr<BoundExpression>>
-{
+auto Binder::BindAllColumns(const char *expect_relation_name) -> std::vector<std::unique_ptr<BoundExpression>> {
     if (expect_relation_name) {
         auto columns = BindTableAllColumns(expect_relation_name);
         if (columns.empty()) {
@@ -325,8 +321,7 @@ static auto SearchAndHandleStarExpression(BoundExpression &expr, BoundStar **sta
 }
 
 /** 绑定 select 子句 */
-auto Binder::BindSelectListExprs(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>>
-{
+auto Binder::BindSelectList(duckdb_libpgquery::PGList *list) -> std::vector<std::unique_ptr<BoundExpression>> {
     auto select_list = std::vector<std::unique_ptr<BoundExpression>>{};
     int count = 0;
     for (auto node = list->head; node != nullptr; node = lnext(node), count++) {
@@ -335,7 +330,7 @@ auto Binder::BindSelectListExprs(duckdb_libpgquery::PGList *list) -> std::vector
         BoundStar *star_expr = nullptr;
         auto expr = BindExpression(target, 1);
         if (SearchAndHandleStarExpression(*expr, &star_expr, true)) {
-            auto all_select_list = BindAllColumnRefs(star_expr->GetRelationName());
+            auto all_select_list = BindAllColumns(star_expr->GetRelationName());
             if (all_select_list.empty()) {
                 // select *
                 throw intarkdb::Exception(ExceptionType::SYNTAX, "no valid table name for star expression");
@@ -370,20 +365,18 @@ auto Binder::BindSelectListExprs(duckdb_libpgquery::PGList *list) -> std::vector
         }
     }
 
-    if (select_list.size() > 1) {
+    if(select_list.size() > 1) {
         // 检查是否有TOP或BOTTOM函数
         bool has_top_or_bottom = false;
         for (size_t i = 0; i < select_list.size(); ++i) {
             if (select_list[i]->Type() == ExpressionType::AGG_CALL) {
-                auto &agg_call = static_cast<BoundFuncExpr &>(*select_list[i]);
-                if (agg_call.funcname == "top" || agg_call.funcname == "bottom") {
+                auto &agg_call = static_cast<BoundFuncCall &>(*select_list[i]);
+                if (agg_call.func_name_ == "top" || agg_call.func_name_ == "bottom") {
                     has_top_or_bottom = true;
                 }
             }
             if (has_top_or_bottom) {
-                throw intarkdb::Exception(ExceptionType::BINDER,
-                    "Some functions are allowed only in the SELECT list of a query. And,"
-                    "cannot be mixed with other functions or columns.");
+                throw intarkdb::Exception(ExceptionType::BINDER, "Some functions are allowed only in the SELECT list of a query. And, cannot be mixed with other functions or columns.");
                 break;
             }
         }
@@ -598,8 +591,7 @@ auto Binder::BindCheckPoint(duckdb_libpgquery::PGCheckPointStmt *stmt) -> std::u
     return result;
 }
 
-auto Binder::BindExplainStmt(duckdb_libpgquery::PGExplainStmt *stmt) -> std::unique_ptr<ExplainStatement>
-{
+auto Binder::BindExplain(duckdb_libpgquery::PGExplainStmt *stmt) -> std::unique_ptr<ExplainStatement> {
     auto result = std::make_unique<ExplainStatement>();
     auto explain_type = ExplainType::EXPLAIN_STANDARD;
 
@@ -615,7 +607,7 @@ auto Binder::BindExplainStmt(duckdb_libpgquery::PGExplainStmt *stmt) -> std::uni
         }
     }
     result->explain_type = explain_type;
-    result->stmt = BindSQLStmt(stmt->query);
+    result->stmt = BindStatement(stmt->query);
     return result;
 }
 
@@ -635,7 +627,7 @@ auto Binder::BindCommentOn(duckdb_libpgquery::PGCommentStmt *stmt) -> std::uniqu
     result->comment = stmt->comment;
 
     if (stmt->objtype == duckdb_libpgquery::PG_OBJECT_COLUMN) {
-        result->object_type = ObjectType::COLUMN;
+        result->object_type_ = PG_OBJECT_COLUMN;
         // support <object> format : [user_name.]table_name.column_name
         if (obj_decode_list.size() == OBJ_LIST_2ARG) {
             result->user_name = user_;
@@ -650,11 +642,12 @@ auto Binder::BindCommentOn(duckdb_libpgquery::PGCommentStmt *stmt) -> std::uniqu
             throw std::invalid_argument("Bad format of object input!!, must be : [user_name.]table_name.column_name");
         }
     } else if (stmt->objtype == duckdb_libpgquery::PG_OBJECT_TABLE) {
-        result->object_type = ObjectType::TABLE;
+        result->object_type_ = PG_OBJECT_TABLE;
         // support <object> format : [user_name.]table_name
         if (obj_decode_list.size() == OBJ_LIST_1ARG) {
             result->user_name = user_;
             result->table_name = obj_decode_list[0];
+
         } else if (obj_decode_list.size() == OBJ_LIST_2ARG) {
             result->user_name = obj_decode_list[0];
             result->table_name = obj_decode_list[1];

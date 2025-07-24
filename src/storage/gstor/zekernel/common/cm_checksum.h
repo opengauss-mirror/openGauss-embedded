@@ -33,6 +33,8 @@
 // #define HAVE_ARM_ACLE
 #endif
 #endif
+#elif defined(__riscv) || defined(__riscv__)
+// RISC-V架构不需要特定的头文件，使用标准库
 #elif defined(WIN32)
 #include <nmmintrin.h>
 #define DB_HAVE_SSE4_2
@@ -60,7 +62,7 @@ static inline uint32 swap32(uint32 val)
 }
 #ifdef _MSC_VER
 static inline bool32 cm_crc32c_sse42_available(void) {
-    int arr[4] = {0, 0, 0, 0};  // �޸�Ϊ int ����
+    int arr[4] = {0, 0, 0, 0};  // 修改为 int 数组
 
 #if defined(DB_HAVE__GET_CPUID)
     __get_cpuid(1, &arr[0], &arr[1], &arr[2], &arr[3]);
@@ -75,6 +77,10 @@ static inline bool32 cm_crc32c_sse42_available(void) {
 #else
 static inline bool32 cm_crc32c_sse42_available(void)
 {
+#if defined(__riscv) || defined(__riscv__)
+    // RISC-V架构不支持SSE4.2
+    return GS_FALSE;
+#else
     uint32 arr[4] = { 0, 0, 0, 0 };
 
 #if defined(DB_HAVE__GET_CPUID)
@@ -86,8 +92,10 @@ static inline bool32 cm_crc32c_sse42_available(void)
 #endif
 
     return (arr[2] & (1 << 20)) != 0;
+#endif
 }
 #endif
+
 static inline void cm_init_crc32c(uint32 *crc)
 {
     (*crc) = 0xFFFFFFFF;
@@ -103,7 +111,13 @@ static inline void cm_final_crc32c_bendian(uint32 *crc)
     (*crc) = swap32(*crc) ^ 0xFFFFFFFF;
 }
 
+#if defined(__riscv) || defined(__riscv__)
+// RISC-V架构不使用SSE4.2指令集，仅声明函数，实际使用软件实现
 uint32 cm_crc32c_sse42(const void *data, uint32 len, uint32 crc);
+#else
+uint32 cm_crc32c_sse42(const void *data, uint32 len, uint32 crc);
+#endif
+
 uint32 cm_crc32c_sb8(const void *data, uint32 len, uint32 crc);
 
 #if defined(HAVE_ARM_ACLE)
@@ -152,6 +166,9 @@ static inline uint32 cm_get_checksum(const void *data, uint32 len)
     if (cm_crc32c_aarch_available()) {
         return cm_get_crc32c_aarch(data, len);
     }
+#elif defined(__riscv) || defined(__riscv__)
+    // RISC-V架构始终使用软件CRC32C实现
+    return cm_get_crc32_sb8(data, len);
 #else
     if (cm_crc32c_sse42_available()) {
         return cm_get_crc32_sse42(data, len);

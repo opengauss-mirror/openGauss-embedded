@@ -13,26 +13,30 @@
  * See the Mulan PSL v2 for more details.
  * -------------------------------------------------------------------------
  *
- * bound_subquery.h
+ * bound_table_ref.cpp
  *
  * IDENTIFICATION
- * openGauss-embedded/src/compute/sql/include/binder/table_ref/bound_subquery.h
+ * openGauss-embedded/src/compute/sql/binder/bound_table_ref.cpp
  *
  * -------------------------------------------------------------------------
  */
-#pragma once
-
 #include "binder/bound_table_ref.h"
-#include "binder/statement/select_statement.h"
 
-class BoundSubquery : public BoundTableRef {
-   public:
-    explicit BoundSubquery(std::unique_ptr<SelectStatement> subquery, std::string alias)
-        : BoundTableRef(DataSourceType::SUBQUERY_RESULT), subquery(std::move(subquery)), alias(std::move(alias)) {}
-
-    auto ToString() const -> std::string override { return "BoundSubquery"; }
-
-    std::unique_ptr<SelectStatement> subquery;
-
-    std::string alias;
-};
+auto DataSourceTypeToString(DataSourceType type) -> std::string_view {
+    switch (type) {
+        case DataSourceType::INVALID:
+            return "Invalid";
+        case DataSourceType::BASE_TABLE:
+            return "BaseTable";
+        case DataSourceType::JOIN_RESULT:
+            return "Join";
+        case DataSourceType::DUAL:
+            return "Empty";
+        case DataSourceType::SUBQUERY_RESULT:
+            return "Subquery";
+        case DataSourceType::VALUE_CLAUSE:
+            return "ValueClause";
+        default:
+            return "Unknown";
+    }
+}

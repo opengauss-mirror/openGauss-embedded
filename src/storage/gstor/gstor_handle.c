@@ -110,7 +110,7 @@ static void knl_init_new_session(instance_t *cc_instance, knl_session_t *knl_ses
     uint32 sid = cc_instance->hwm;
     knl_session->id = sid;
     kernel->sessions[sid] = knl_session;
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv) || defined(__riscv__)
     CM_MFENCE;
 #endif
     cc_instance->hwm++;

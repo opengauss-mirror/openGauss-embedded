@@ -22,16 +22,17 @@
 */
 #pragma once
 
+#include "binder/bound_statement.h"
 #include "catalog/catalog.h"
 #include "planner/logical_plan/logical_plan.h"
 
 class CommentOnPlan : public LogicalPlan {
    public:
-    CommentOnPlan(Catalog *catalog, ObjectType obj_type, const std::string &user, const std::string &table,
+    CommentOnPlan(Catalog *catalog, PGObjectType obj_type, const std::string &user, const std::string &table,
                   const std::string &column, const std::string &comment_str)
         : LogicalPlan(LogicalPlanType::Comment_On),
           catalog_(catalog),
-          object_type(obj_type),
+          object_type_(obj_type),
           user_name(user),
           table_name(table),
           column_name(column),
@@ -47,7 +48,7 @@ class CommentOnPlan : public LogicalPlan {
 
    public:
     Catalog *catalog_;
-    ObjectType object_type;
+    PGObjectType object_type_;
 
     std::string user_name;
     std::string table_name;
