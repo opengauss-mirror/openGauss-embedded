@@ -37,7 +37,7 @@ extern "C" {
 
 typedef volatile uint32 spinlock_t;
 typedef volatile uint32 ip_spinlock_t;
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv) || defined(__riscv__)
 #define GS_INIT_SPIN_LOCK(lock)                       \
     {                                                 \
         __atomic_store_n(&lock, 0, __ATOMIC_SEQ_CST); \
@@ -71,6 +71,11 @@ typedef struct st_recursive_lock {
 } recursive_lock_t;
 
 #if defined(__arm__) || defined(__aarch64__)
+#define fas_cpu_pause()          \
+    {                            \
+        __asm__ volatile("nop"); \
+    }
+#elif defined(__riscv) || defined(__riscv__)
 #define fas_cpu_pause()          \
     {                            \
         __asm__ volatile("nop"); \
@@ -152,7 +157,7 @@ static inline void cm_spin_lock(spinlock_t *lock, spin_statis_t *stat)
     }
 
     for (;;) {
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv) || defined(__riscv__)
         while (__atomic_load_n(lock, __ATOMIC_SEQ_CST) != 0) {
 #else
         while (*lock != 0) {
@@ -188,7 +193,7 @@ static inline void cm_spin_lock_ex(spinlock_t *lock, spin_statis_t *stat, uint32
     }
 
     for (;;) {
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv) || defined(__riscv__)
         while (__atomic_load_n(lock, __ATOMIC_SEQ_CST) != 0) {
 #else
         while (*lock != 0) {
@@ -219,7 +224,7 @@ static inline void cm_spin_lock_ex(spinlock_t *lock, spin_statis_t *stat, uint32
     }
 }
 
-#if !defined(__arm__) && !defined(__aarch64__)
+#if !defined(__arm__) && !defined(__aarch64__) && !defined(__riscv) && !defined(__riscv__)
 static inline void cm_spin_unlock(spinlock_t *lock)
 {
     if (SECUREC_UNLIKELY(lock == NULL)) {
@@ -228,11 +233,20 @@ static inline void cm_spin_unlock(spinlock_t *lock)
 
     *lock = 0;
 }
+#else
+static inline void cm_spin_unlock(spinlock_t *lock)
+{
+    if (SECUREC_UNLIKELY(lock == NULL)) {
+        return;
+    }
+
+    __atomic_store_n(lock, 0, __ATOMIC_SEQ_CST);
+}
 #endif
 
 static inline bool32 cm_spin_try_lock(spinlock_t *lock)
 {
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv) || defined(__riscv__)
     if (__atomic_load_n(lock, __ATOMIC_SEQ_CST) != 0) {
 #else
     if (*lock != 0) {
@@ -249,7 +263,7 @@ static inline bool32 cm_spin_timed_lock(spinlock_t *lock, uint32 timeout_ticks)
     uint32 sleep_times = 0;
 
     for (;;) {
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv) || defined(__riscv__)
         while (__atomic_load_n(lock, __ATOMIC_SEQ_CST) != 0) {
 #else
         while (*lock != 0) {
