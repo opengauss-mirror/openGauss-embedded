@@ -31,22 +31,23 @@ auto DropExec::Execute() const -> RecordBatch {
     drop_info.name = (char*)name.c_str();
     drop_info.if_exists = (int)if_exists;
     switch (type) {
-        case ObjectType::TABLE_ENTRY:
+        case ObjectType::TABLE:
             drop_info.type = DROP_TYPE_TABLE;
             break;
-        case ObjectType::INDEX_ENTRY:
+        case ObjectType::INDEX:
             drop_info.type = DROP_TYPE_INDEX;
             break;
-        case ObjectType::SEQUENCE_ENTRY:
+        case ObjectType::SEQUENCE:
             drop_info.type = DROP_TYPE_SEQUENCE;
             break;
-        case ObjectType::VIEW_ENTRY:
+        case ObjectType::VIEW:
             drop_info.type = DROP_TYPE_VIEW;
             break;
-        case ObjectType::SYNONYM_ENTRY:
+        case ObjectType::SYNONYM:
             return DropSynonym();
         default:
-            throw std::invalid_argument(fmt::format("physical plan drop type not implemented yet"));
+            throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED,
+                "physical plan drop type not implemented yet");
     }
 
     auto storage = catalog_.GetStorageHandle();

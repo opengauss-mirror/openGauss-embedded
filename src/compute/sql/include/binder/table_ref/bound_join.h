@@ -27,14 +27,14 @@
 #include <cstdint>
 
 #include "binder/bound_expression.h"
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 #include "common/join_type.h"
 
-class BoundJoin : public BoundTableRef {
+class BoundJoin : public BoundQuerySource {
    public:
-    explicit BoundJoin(JoinType type, std::unique_ptr<BoundTableRef> l, std::unique_ptr<BoundTableRef> r,
+    explicit BoundJoin(JoinType type, std::unique_ptr<BoundQuerySource> l, std::unique_ptr<BoundQuerySource> r,
                        std::unique_ptr<BoundExpression> cond)
-        : BoundTableRef(DataSourceType::JOIN_RESULT),
+        : BoundQuerySource(DataSourceType::JOIN_RESULT),
           left(std::move(l)),
           right(std::move(r)),
           join_type(type),
@@ -45,9 +45,9 @@ class BoundJoin : public BoundTableRef {
                            right->ToString(), on_condition);
     }
 
-    std::unique_ptr<BoundTableRef> left;
+    std::unique_ptr<BoundQuerySource> left;
 
-    std::unique_ptr<BoundTableRef> right;
+    std::unique_ptr<BoundQuerySource> right;
 
     JoinType join_type;
 

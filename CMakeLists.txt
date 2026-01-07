@@ -406,10 +406,6 @@ if (${OS_ARCH} STREQUAL "aarch64")
     add_compile_options( -fsigned-char -funwind-tables)
 elseif(${OS_ARCH} STREQUAL "x86_64")
     add_compile_options(-msse4.2 )
-elseif(${OS_ARCH} STREQUAL "riscv64")
-    # RISC-V 64位架构特定选项
-    add_compile_options(-fsigned-char -funwind-tables)
-    message(STATUS "Toolchain: Build riscv64")
 endif ()
 Add_Definitions(-DWSEC_COMPILE_CAC_OPENSSL -DWSEC_AES_GCM_SUPPORT -DWSEC_USE_OPENSSL_110 -DWSEC_COMPILE_SDP)
 

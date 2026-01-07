@@ -537,7 +537,6 @@ uint32_t get_streamagg_threadpool_num(void *db_instance);
 
 thread_t * get_streamagg_main_thread(void *db_instance);
 char * get_database_home_path(void *db_instance);
-int32_t get_ts_cagg_switch_on(void *db_instance);
 
 EXPORT_API status_t gstor_autoincrement_nextval(void *handle, uint32 slot, int64_t *nextval);
 
@@ -548,6 +547,7 @@ EXPORT_API status_t gstor_set_is_begin_transaction(void *handle, uint8 flag);
 int64 gstor_get_sql_engine_memory_limit(void *handle);
 uint32_t gstor_get_max_connections(void *handle);
 uint32_t gstor_set_max_connections(void *handle, uint32_t max_conn);
+int32_t get_ts_update_switch_on(void *handle);
 
 bool32 gstor_get_user_id(void *handle, const char *user_name, uint32 *id);
 bool32 gstor_get_role_id(void *handle, const char *role_name, uint32 *id);

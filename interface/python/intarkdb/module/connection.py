@@ -197,6 +197,7 @@ class Connection:
 
         with Connection.CONNECTION_LOCK:
             self.__sql.intarkdb_disconnect(self._conn, self._network)
+            self._conn = None
             print("intarkdb disconnect success")
             if(self._network == False):
                 INTARKDB_NUM[self._path] -= 1
@@ -214,6 +215,7 @@ class Connection:
         
         with Connection.CONNECTION_LOCK:
             self.__sql.intarkdb_disconnect(self._conn, self._network, self._kv)
+            self._conn = None
             print("intarkdb disconnect kv success")
 
             # 关闭数据库

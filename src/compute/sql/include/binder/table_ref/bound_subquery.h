@@ -22,13 +22,13 @@
  */
 #pragma once
 
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 #include "binder/statement/select_statement.h"
 
-class BoundSubquery : public BoundTableRef {
+class BoundSubquery : public BoundQuerySource {
    public:
     explicit BoundSubquery(std::unique_ptr<SelectStatement> subquery, std::string alias)
-        : BoundTableRef(DataSourceType::SUBQUERY_RESULT), subquery(std::move(subquery)), alias(std::move(alias)) {}
+        : BoundQuerySource(DataSourceType::SUBQUERY_RESULT), subquery(std::move(subquery)), alias(std::move(alias)) {}
 
     auto ToString() const -> std::string override { return "BoundSubquery"; }
 

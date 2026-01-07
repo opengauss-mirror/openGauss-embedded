@@ -77,7 +77,7 @@ class Connection {
 
     EXPORT_API std::unique_ptr<PreparedStatement> Prepare(const std::string& query);
     std::vector<ParsedStatement> ParseStatementsInternal(const std::string& query);
-    std::unique_ptr<BoundStatement> BindStatement(const ParsedStatement& stmt, const std::string& query);
+    std::unique_ptr<BoundStatement> BindSQLStmt(const ParsedStatement& stmt, const std::string& query);
     std::unique_ptr<PreparedStatement> CreatePreparedStatement(std::unique_ptr<BoundStatement> statement);
     std::unique_ptr<RecordBatch> ExecuteStatement(const std::string& query, std::unique_ptr<BoundStatement> statement);
     std::unique_ptr<RecordStreaming> ExecuteStatementStreaming(std::unique_ptr<BoundStatement> statement);

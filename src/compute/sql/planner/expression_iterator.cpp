@@ -29,7 +29,7 @@
 #include "binder/expressions/bound_case.h"
 #include "binder/expressions/bound_cast.h"
 #include "binder/expressions/bound_conjunctive.h"
-#include "binder/expressions/bound_func_call.h"
+#include "binder/expressions/bound_func_expr.h"
 #include "binder/expressions/bound_in_expr.h"
 #include "binder/expressions/bound_like_op.h"
 #include "binder/expressions/bound_null_test.h"
@@ -85,8 +85,8 @@ void ExpressionIterator::EnumerateChildren(
             break;
         }
         case ExpressionType::FUNC_CALL: {
-            auto &fun_call_expr = (BoundFuncCall &)expr;
-            for (auto &arg : fun_call_expr.args_) {
+            auto &fun_call_expr = (BoundFuncExpr &)expr;
+            for (auto &arg : fun_call_expr.args) {
                 callback(arg);
             }
             break;
@@ -164,7 +164,7 @@ void ExpressionIterator::EnumerateExpression(BoundExpression &expr,
         expr, [&](std::unique_ptr<BoundExpression> &child) { EnumerateExpression(*child, callback); });
 }
 
-void ExpressionIterator::EnumerateTableRefChildren(BoundTableRef &ref,
+void ExpressionIterator::EnumerateTableRefChildren(BoundQuerySource &ref,
                                                    const std::function<void(BoundExpression &child)> &callback) {
     switch (ref.Type()) {
         case DataSourceType::JOIN_RESULT: {
@@ -230,7 +230,9 @@ void TableRefIterator::EnumerateTableRef(SelectStatement &stmt,
     }
 }
 
-void TableRefIterator::EnumerateTableRef(BoundTableRef &ref, const std::function<void(BoundBaseTable &tbl)> &callback) {
+void TableRefIterator::EnumerateTableRef(BoundQuerySource &ref,
+    const std::function<void(BoundBaseTable &tbl)> &callback)
+{
     switch (ref.Type()) {
         case DataSourceType::BASE_TABLE: {
             callback(static_cast<BoundBaseTable &>(ref));

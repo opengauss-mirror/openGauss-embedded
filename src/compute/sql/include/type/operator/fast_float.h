@@ -114,7 +114,6 @@ from_chars_result from_chars(const char *first, const char *last,
        || defined(__amd64) || defined(__aarch64__) || defined(_M_ARM64) \
        || defined(__MINGW64__)                                          \
        || defined(__s390x__)                                            \
-       || defined(__riscv) || defined(__riscv__)                       \
        || (defined(__ppc64__) || defined(__PPC64__) || defined(__ppc64le__) || defined(__PPC64LE__)) \
        || defined(__EMSCRIPTEN__))
 #define FASTFLOAT_64BIT
@@ -1851,7 +1850,7 @@ parsed_number_string parse_number_string(const char *p, const char *pend, const 
 // This function could be optimized. In particular, we could stop after 19 digits
 // and try to bail out. Furthermore, we should be able to recover the computed
 // exponent from the pass in parse_number_string.
-fastfloat_really_inline decimal parse_decimal(const char *p, const char *pend, const char decimal_separator = '.') noexcept {
+fastfloat_really_inline decimal parse_decimal(const char *p, const char *pend, const char decimal_separator) noexcept {
   decimal answer;
   answer.num_digits = 0;
   answer.decimal_point = 0;

@@ -16,7 +16,7 @@
 * assist.cpp
 *
 * IDENTIFICATION
-* openGauss-embedded/tools/cli_common/assist.cpp
+* openGauss-embedded/tools/intarkdb_cli/assist.cpp
 *
 * -------------------------------------------------------------------------
 */

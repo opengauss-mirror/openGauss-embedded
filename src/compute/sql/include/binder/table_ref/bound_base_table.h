@@ -27,14 +27,14 @@
 #include <optional>
 #include <string>
 
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 #include "catalog/table_info.h"
 
-class BoundBaseTable : public BoundTableRef {
+class BoundBaseTable : public BoundQuerySource {
    public:
     explicit BoundBaseTable(const std::string &schema_name, std::string table, std::optional<std::string> alias,
                                std::unique_ptr<TableInfo> table_info)
-        : BoundTableRef(DataSourceType::BASE_TABLE),
+        : BoundQuerySource(DataSourceType::BASE_TABLE),
           schema_(schema_name),
           table_(std::move(table)),
           alias_(std::move(alias)),

@@ -88,7 +88,7 @@
 #define DEFAULT_DDL_LOCK_TIMEOUT (uint32)30     // second
 #define DEFAULT_LOCK_WAIT_TIMEOUT (uint32)60000 // millisecond
 #define DEFAULT_MAX_CONN_NUM (uint32)100
-#define DEFAULT_DBWR_FSYNC_TIMEOUT (uint32)10
+#define DEFAULT_DBWR_FSYNC_TIMEOUT (uint32)100
 #define DEFAULT_ISOLATION_LEVEL (uint32)1       // 1:Read Committed, 2:Repeatable Read
 #define FIX_NUM_DAYS_YEAR (uint32)365
 

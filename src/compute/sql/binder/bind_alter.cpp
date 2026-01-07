@@ -95,7 +95,7 @@ auto Binder::BindAlter(duckdb_libpgquery::PGAlterTableStmt *stmt) -> std::unique
                     throw intarkdb::Exception(ExceptionType::BINDER,
                                               "Adding generated columns after table creation is not supported yet");
                 }
-                auto col = BindColumnDefinition(*cdef, -1, result->constraints);
+                auto col = BindColumnWtihDef(*cdef, -1, result->constraints);
                 if (table_info.IsTimeScale() && col.HasPrimaryOrUniqueKey()) {
                     throw intarkdb::Exception(ExceptionType::BINDER,
                                               "Primary key or unique key is not supported for time scale table");

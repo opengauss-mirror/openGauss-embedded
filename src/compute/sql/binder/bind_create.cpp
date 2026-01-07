@@ -27,8 +27,9 @@
 #include "common/constrain_type.h"
 
 // PGColumnDef -> Column , 列描述 -> 列实体
-auto Binder::BindColumnDefinition(duckdb_libpgquery::PGColumnDef &cdef, uint16_t slot,
-                                  std::vector<Constraint> &constraints) -> Column {
+auto Binder::BindColumnWtihDef(duckdb_libpgquery::PGColumnDef &cdef, uint16_t slot,
+                               std::vector<Constraint> &constraints) -> Column
+{
     if (cdef.collClause != nullptr) {
         // 表示列的排序规则，先不支持
         throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "col clause on column is not supported");
@@ -143,8 +144,8 @@ auto Binder::BindMultiColConstraint(const duckdb_libpgquery::PGConstraint &const
             throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "not support check constraint yet!");
         }
         case duckdb_libpgquery::PG_CONSTR_FOREIGN: {
-            throw intarkdb::Exception(ExceptionType::NOT_IMPLEMENTED, "not support references constraint yet!");
-            auto table_ref = BindRangeVar(*NullCheckPtrCast<duckdb_libpgquery::PGRangeVar>(constraint.pktable), false);
+            auto table_ref =
+                BindRangeVarTableRef(*NullCheckPtrCast<duckdb_libpgquery::PGRangeVar>(constraint.pktable), false);
             auto base_table = static_cast<BoundBaseTable *>(table_ref.get());
             auto pk_user = base_table->GetSchema();
             auto pk_table = base_table->GetBoundTableName();
@@ -156,15 +157,24 @@ auto Binder::BindMultiColConstraint(const duckdb_libpgquery::PGConstraint &const
             }
 
             std::vector<std::string> fk_columns;
-            for (auto kc = constraint.fk_attrs->head; kc != nullptr; kc = kc->next) {
-                fk_columns.emplace_back(intarkdb::StringUtil::Lower(
-                    reinterpret_cast<duckdb_libpgquery::PGValue *>(kc->data.ptr_value)->val.str));
+            if (constraint.fk_attrs) {
+                for (auto kc = constraint.fk_attrs->head; kc != nullptr; kc = kc->next) {
+                    fk_columns.emplace_back(intarkdb::StringUtil::Lower(
+                        reinterpret_cast<duckdb_libpgquery::PGValue *>(kc->data.ptr_value)->val.str));
+                }
             }
             std::vector<std::string> fk_ref_columns;
-            for (auto kc = constraint.pk_attrs->head; kc != nullptr; kc = kc->next) {
-                fk_ref_columns.emplace_back(intarkdb::StringUtil::Lower(
-                    reinterpret_cast<duckdb_libpgquery::PGValue *>(kc->data.ptr_value)->val.str));
+            if (constraint.pk_attrs) {
+                for (auto kc = constraint.pk_attrs->head; kc != nullptr; kc = kc->next) {
+                    fk_ref_columns.emplace_back(intarkdb::StringUtil::Lower(
+                        reinterpret_cast<duckdb_libpgquery::PGValue *>(kc->data.ptr_value)->val.str));
+                }
             }
+            if (fk_columns.size() != fk_ref_columns.size()) {
+                throw intarkdb::Exception(ExceptionType::BINDER,
+                    "Key reference and table reference don't match!");
+            }
+
             Constraint cons_fk(CONS_TYPE_REFERENCE, fk_columns, fk_ref_columns, pk_user, pk_table, constraint.conname);
             cons_fk.fk_matchtype_ = fk_matchtype;
             cons_fk.fk_upd_action_ = REF_DEL_NOT_ALLOWED;
@@ -259,7 +269,7 @@ auto Binder::BindCreateColumnList(duckdb_libpgquery::PGList *tableElts, const st
             case duckdb_libpgquery::T_PGColumnDef: {
                 auto cdef = NullCheckPtrCast<duckdb_libpgquery::PGColumnDef>(c->data.ptr_value);
                 // create column
-                auto col = BindColumnDefinition(*cdef, column_slots, constraints);
+                auto col = BindColumnWtihDef(*cdef, column_slots, constraints);
                 // 检查列名是否重复
                 if (lower_case_col_set.find(col.Name()) != lower_case_col_set.end()) {
                     throw intarkdb::Exception(ExceptionType::BINDER,
@@ -387,7 +397,8 @@ static auto HandleCreatePartionAndTimescale(duckdb_libpgquery::PGCreateStmt *pg_
     }
 }
 
-auto Binder::BindCreate(duckdb_libpgquery::PGCreateStmt *pg_stmt) -> std::unique_ptr<CreateStatement> {
+auto Binder::BindCreateStmt(duckdb_libpgquery::PGCreateStmt *pg_stmt) -> std::unique_ptr<CreateStatement>
+{
     // CheckSysPrivilege
     if (catalog_.CheckSysPrivilege(CREATE_TABLE) != GS_TRUE) {
         throw intarkdb::Exception(ExceptionType::BINDER, fmt::format("user {} create table permission denied!", user_));

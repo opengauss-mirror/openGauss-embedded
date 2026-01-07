@@ -156,16 +156,16 @@ auto Binder::BindCopySelectList(const duckdb_libpgquery::PGCopyStmt &stmt, const
     -> std::vector<std::unique_ptr<BoundExpression>> {
     std::vector<std::unique_ptr<BoundExpression>> select_list;
     if (stmt.attlist) {
-        select_list = BindSelectList(stmt.attlist);
+        select_list = BindSelectListExprs(stmt.attlist);
     } else {
-        select_list = BindAllColumns(nullptr);
+        select_list = BindAllColumnRefs(nullptr);
     }
     return select_list;
 }
 
 auto Binder::BindCopyFrom(const duckdb_libpgquery::PGCopyStmt &stmt, CopyInfo &info) -> void {
     if (stmt.relation) {
-        auto table = BindRangeVar(*stmt.relation);
+        auto table = BindRangeVarTableRef(*stmt.relation);
         info.table_ref = std::unique_ptr<BoundBaseTable>(static_cast<BoundBaseTable *>(table.release()));
         info.select_list = BindCopySelectList(stmt, *info.table_ref);
     } else {
@@ -177,11 +177,11 @@ auto Binder::BindCopyTo(const duckdb_libpgquery::PGCopyStmt &stmt, CopyInfo &inf
     std::unique_ptr<SelectStatement> select_statement;
     if (stmt.relation) {
         select_statement = std::make_unique<SelectStatement>();
-        select_statement->table_ref = BindRangeVar(*stmt.relation);
+        select_statement->table_ref = BindRangeVarTableRef(*stmt.relation);
         auto &table_ref = static_cast<BoundBaseTable &>(*select_statement->table_ref);
         select_statement->select_expr_list = BindCopySelectList(stmt, table_ref);
     } else if (stmt.query) {
-        select_statement = BindSelect((duckdb_libpgquery::PGSelectStmt *)stmt.query);
+        select_statement = BindSelectStmt((duckdb_libpgquery::PGSelectStmt *)stmt.query);
     } else {
         throw intarkdb::Exception(ExceptionType::BINDER, "unspecific copy table name");
     }

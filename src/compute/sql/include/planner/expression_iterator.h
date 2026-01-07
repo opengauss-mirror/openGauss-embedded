@@ -26,7 +26,7 @@
 #include <memory>
 
 #include "binder/bound_expression.h"
-#include "binder/bound_table_ref.h"
+#include "binder/bound_query_source.h"
 #include "binder/statement/select_statement.h"
 #include "binder/table_ref/bound_base_table.h"
 
@@ -41,7 +41,7 @@ class ExpressionIterator {
     static void EnumerateExpression(std::unique_ptr<BoundExpression> &expr,
                                     const std::function<void(std::unique_ptr<BoundExpression> &child)> &callback);
 
-    static void EnumerateTableRefChildren(BoundTableRef &ref,
+    static void EnumerateTableRefChildren(BoundQuerySource &ref,
                                           const std::function<void(BoundExpression &child)> &callback);
 
     static void EnumerateSelectStatement(SelectStatement &stmt,
@@ -50,6 +50,6 @@ class ExpressionIterator {
 
 class TableRefIterator {
    public:
-    static void EnumerateTableRef(BoundTableRef &ref, const std::function<void(BoundBaseTable &tbl)> &callback);
+    static void EnumerateTableRef(BoundQuerySource &ref, const std::function<void(BoundBaseTable &tbl)> &callback);
     static void EnumerateTableRef(SelectStatement &stmt, const std::function<void(BoundBaseTable &tbl)> &callback);
 };

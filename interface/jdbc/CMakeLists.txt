@@ -33,6 +33,7 @@ set(JAVA_SVR ${CMAKE_CURRENT_SOURCE_DIR}/org_intarkdb_core_IntarkdbNative.c)
 if(ANDROID)
     add_library(intarkdb_jni SHARED ${JAVA_SVR}
     $<TARGET_OBJECTS:sql_object>
+    $<TARGET_OBJECTS:kv_object>
     $<TARGET_OBJECTS:storage_obj> $<TARGET_OBJECTS:gstor_obj>
     $<TARGET_OBJECTS:zekernel> $<TARGET_OBJECTS:zecommon>
     $<TARGET_OBJECTS:securec_obj>
@@ -42,6 +43,7 @@ if(ANDROID)
 else()
     add_library(intarkdb_jni SHARED ${JAVA_SVR}
     $<TARGET_OBJECTS:sql_object>
+    $<TARGET_OBJECTS:kv_object>
     $<TARGET_OBJECTS:storage_obj> $<TARGET_OBJECTS:gstor_obj>
     $<TARGET_OBJECTS:zekernel> $<TARGET_OBJECTS:zecommon>
     $<TARGET_OBJECTS:network_server_protocol_obj>

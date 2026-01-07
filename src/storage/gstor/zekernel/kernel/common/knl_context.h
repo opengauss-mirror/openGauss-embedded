@@ -288,8 +288,6 @@ typedef struct st_knl_attr {
     bool32 enable_auto_inherit_role;
     uint32 arch_mode;
     uint32 redo_save_time;
-    uint32 exec_agg_thread_num;
-    bool32 enable_ts_cagg; // 时序流计算开关
     uint64 max_sql_engine_memory; // sql引擎内存上限,单位字节
     uint32 max_conn_num;
 
@@ -299,6 +297,7 @@ typedef struct st_knl_attr {
     bool32 smon_loop_in_ignore_mode;   // 20241101 吴锦锋   受损文件启动时，让smon线程先进入忽略损坏模式
     uint32 dbwr_fsync_timeout;
     uint32 isolation_level;
+    bool32 enable_ts_update; // 时序表支持update操作开关
 } knl_attr_t;
 
 typedef struct st_sys_name_context {  // for system name

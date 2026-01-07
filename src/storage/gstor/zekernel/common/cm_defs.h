@@ -298,7 +298,7 @@ typedef struct internal_default_value {
 #define CM_SINGLE_QUOTE_LEN 2
 
 /* file */
-#define GS_MAX_CONFIG_FILE_SIZE SIZE_K(2)
+#define GS_MAX_CONFIG_FILE_SIZE SIZE_K(4)
 #define GS_MAX_HBA_FILE_SIZE SIZE_M(1)
 #define GS_MAX_CONFIG_BUFF_SIZE SIZE_M(1)
 #define GS_MAX_CONFIG_LINE_SIZE SIZE_K(2)
