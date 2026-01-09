@@ -103,7 +103,10 @@ uint32 cm_crc32c_aarch(const void *data, uint32 len, uint32 crc)
 
 uint32 cm_crc32c_sse42(const void *data, uint32 len, uint32 crc)
 {
-#if defined(DB_HAVE_SSE4_2)
+#if defined(__riscv) || defined(__riscv__)
+    // RISC-V架构没有SSE4.2指令集，使用软件实现
+    return cm_crc32c_sb8(data, len, crc);
+#elif defined(DB_HAVE_SSE4_2)
     const uint8 *ptr     = (uint8 *)data;
     const uint8 *ptr_end = ptr + len;
 
