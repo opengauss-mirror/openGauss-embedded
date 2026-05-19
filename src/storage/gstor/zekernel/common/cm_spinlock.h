@@ -110,17 +110,12 @@ static inline void cm_spin_sleep_ex(uint32 tick)
 
 #else
 
-#if defined(__arm__) || defined(__aarch64__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv) || defined(__riscv__)
 static inline uint32 cm_spin_set(spinlock_t *ptr, uint32 value)
 {
     uint32 oldvalue = 0;
     return !__atomic_compare_exchange_n(ptr, &oldvalue, value, GS_FALSE, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 }
-static inline void cm_spin_unlock(spinlock_t *lock)
-{
-    __atomic_store_n(lock, 0, __ATOMIC_SEQ_CST);
-}
-
 #else
 static inline uint32 cm_spin_set(spinlock_t *ptr, uint32 value)
 {
@@ -224,14 +219,10 @@ static inline void cm_spin_lock_ex(spinlock_t *lock, spin_statis_t *stat, uint32
     }
 }
 
-#if !defined(__arm__) && !defined(__aarch64__) && !defined(__riscv) && !defined(__riscv__)
+#if defined(__arm__) || defined(__aarch64__) || defined(__riscv) || defined(__riscv__)
 static inline void cm_spin_unlock(spinlock_t *lock)
 {
-    if (SECUREC_UNLIKELY(lock == NULL)) {
-        return;
-    }
-
-    *lock = 0;
+    __atomic_store_n(lock, 0, __ATOMIC_SEQ_CST);
 }
 #else
 static inline void cm_spin_unlock(spinlock_t *lock)
@@ -240,7 +231,7 @@ static inline void cm_spin_unlock(spinlock_t *lock)
         return;
     }
 
-    __atomic_store_n(lock, 0, __ATOMIC_SEQ_CST);
+    *lock = 0;
 }
 #endif
 
