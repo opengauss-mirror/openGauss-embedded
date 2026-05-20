@@ -23,7 +23,13 @@
 #include <gtest/gtest.h>
 
 #include <fstream>
-#include <filesystem>
+#if __GNUC__ >= 8
+    #include <filesystem>
+    namespace fs = std::filesystem;
+#else
+    #include <experimental/filesystem>
+    namespace fs = std::experimental::filesystem;
+#endif
 #include "catalog/catalog.h"
 #include "catalog/table_info.h"
 #include "common/default_value.h"
@@ -234,8 +240,8 @@ TEST_F(ArchiveTest, ArchiveTestOutOfMax) {
 
     std::string path = "./intarkdb/archive_log/";
 
-    for (const auto &entry : std::filesystem::directory_iterator(path)) {
-        if (std::filesystem::is_regular_file(entry.path())) {
+    for (const auto &entry : fs::directory_iterator(path)) {
+        if (fs::is_regular_file(entry.path())) {
             std::cout << entry.path().filename() << std::endl;
         }
         EXPECT_STRNE(entry.path().filename().c_str(), "arch_0_0.arc");
