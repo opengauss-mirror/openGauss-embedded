@@ -1,0 +1,45 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ARG MAKE_JOBS=0
+ARG VERIFY_RELEASE=0
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    bison \
+    ca-certificates \
+    cmake \
+    flex \
+    g++ \
+    gcc \
+    git \
+    libpcre3-dev \
+    make \
+    perl \
+    pkg-config \
+    python3 \
+    sed \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/openGauss-embedded
+
+COPY . .
+
+RUN jobs="${MAKE_JOBS}"; \
+    if [ "${jobs}" = "0" ]; then jobs="$(nproc)"; fi; \
+    if [ "${VERIFY_RELEASE}" = "1" ]; then make -j"${jobs}" release; fi
+
+# Validate the GCOV debug flow by toggling the Makefile switch inside the image
+# without changing the repository contents on the host.
+RUN perl -0pi -e 's/-DENABLE_GCOV=OFF/-DENABLE_GCOV=ON/g' Makefile \
+    && make clean \
+    && jobs="${MAKE_JOBS}"; \
+    if [ "${jobs}" = "0" ]; then jobs="$(nproc)"; fi; \
+    export LDFLAGS="-Wl,--no-as-needed"; \
+    make -j"${jobs}" debug
+
+CMD ["/bin/bash"]
