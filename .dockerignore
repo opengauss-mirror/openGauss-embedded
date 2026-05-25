@@ -1,0 +1,10 @@
+.git
+build/*
+!build/cmake_include/
+!build/cmake_include/CMakeListsInclude.txt
+!build/include/
+!build/include/config.h.in
+!build/VERSION.h.in
+output
+__pycache__
+*.pyc
