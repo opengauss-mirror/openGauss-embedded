@@ -5,41 +5,61 @@ ENV TZ=Asia/Shanghai
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ARG MAKE_JOBS=0
-ARG VERIFY_RELEASE=0
+ARG BUILD_TARGET=test
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     bison \
     ca-certificates \
-    cmake \
     flex \
     g++ \
     gcc \
     git \
+    lcov \
     libpcre3-dev \
     make \
     perl \
     pkg-config \
     python3 \
+    python3-pip \
     sed \
     tzdata \
-    && rm -rf /var/lib/apt/lists/*
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install cmake==3.24.3
 
 WORKDIR /workspace/openGauss-embedded
 
 COPY . .
 
+# Build the specified target. If it's a debug or test target, enable GCOV code coverage first.
+# We use sed/perl to modify CMakeLists.txt and Makefile without changing the host repository.
 RUN jobs="${MAKE_JOBS}"; \
     if [ "${jobs}" = "0" ]; then jobs="$(nproc)"; fi; \
-    if [ "${VERIFY_RELEASE}" = "1" ]; then make -j"${jobs}" release; fi
+    if echo "${BUILD_TARGET}" | grep -q -E "debug|test"; then \
+        echo "Enabling GCOV for ${BUILD_TARGET} build..." \
+        && perl -0pi -e 's/-DENABLE_GCOV=OFF/-DENABLE_GCOV=ON/g' Makefile \
+        && make clean \
+        && make -j"${jobs}" ${BUILD_TARGET}; \
+    else \
+        echo "Building ${BUILD_TARGET} without GCOV..." \
+        && make clean \
+        && make -j"${jobs}" ${BUILD_TARGET}; \
+    fi
 
-# Validate the GCOV debug flow by toggling the Makefile switch inside the image
-# without changing the repository contents on the host.
-RUN perl -0pi -e 's/-DENABLE_GCOV=OFF/-DENABLE_GCOV=ON/g' Makefile \
-    && make clean \
-    && jobs="${MAKE_JOBS}"; \
-    if [ "${jobs}" = "0" ]; then jobs="$(nproc)"; fi; \
-    export LDFLAGS="-Wl,--no-as-needed"; \
-    make -j"${jobs}" debug
+# Set LD_LIBRARY_PATH globally for testshell.sh
+ENV LD_LIBRARY_PATH=/workspace/openGauss-embedded/output/debug/lib:$LD_LIBRARY_PATH
+
+# Set lcov branch coverage to 1 and ignore mismatch errors
+RUN if [ -f /etc/lcovrc ]; then \
+        sed -i 's/^#*\s*lcov_branch_coverage\s*=.*/lcov_branch_coverage = 1/' /etc/lcovrc; \
+        sed -i 's/^#*\s*genhtml_branch_coverage\s*=.*/genhtml_branch_coverage = 1/' /etc/lcovrc; \
+        sed -i 's/^#*\s*geninfo_branch_coverage\s*=.*/geninfo_branch_coverage = 1/' /etc/lcovrc; \
+    else \
+        echo "lcov_branch_coverage = 1" >> /etc/lcovrc; \
+        echo "genhtml_branch_coverage = 1" >> /etc/lcovrc; \
+        echo "geninfo_branch_coverage = 1" >> /etc/lcovrc; \
+    fi && \
+    echo "ignore_errors = mismatch,mismatch" >> /etc/lcovrc
 
 CMD ["/bin/bash"]
