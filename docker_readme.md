@@ -108,7 +108,22 @@ docker run --rm \
 ```
 *注：`--compare-branch` 可以根据需要替换为 `origin/main`、`origin/master` 等。执行完成后，在宿主机的 `coverage_report` 目录下直接双击打开 `diff_coverage.html` 即可直观查看增量覆盖情况。*
 
-### 4、如何阅读增量覆盖率报告 (HTML)
+### 4、将增量覆盖率作为 CI/CD 自动化卡点
+在自动化流水线中，您可以利用 `diff-cover` 的 `--fail-under` 参数来设置覆盖率的最低阈值。如果实际增量覆盖率低于该值，命令将返回非 `0` 的退出码（Exit Code 1），从而自动中断流水线，实现卡点拦截。
+
+示例：要求增量代码覆盖率必须达到 **80%**，否则流水线失败：
+```bash
+docker run --rm \
+  -v $(pwd)/coverage_report:/out \
+  -v $(pwd)/.git:/workspace/openGauss-embedded/.git:ro \
+  intarkdb:arm64 \
+  bash -c "bash testshell.sh all && \
+           lcov --capture --directory . --output-file run.info && \
+           lcov_cobertura run.info -o /out/coverage.xml && \
+           diff-cover /out/coverage.xml --compare-branch=master --html-report /out/diff_coverage.html --fail-under 80"
+```
+
+### 5、如何阅读增量覆盖率报告 (HTML)
 打开 `diff_coverage.html` 后，你可以直观地看到代码的覆盖情况：
 
 - **红色背景 (Missing)**：表示该行是**可执行代码**，但在运行测试用例时**未被执行**（即未覆盖）。
