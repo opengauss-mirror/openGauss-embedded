@@ -51,11 +51,23 @@ mingw32-make.exe 进行编译。
 
 ##### 4、交叉编译ARM环境
 ###### 交叉编译arm linux环境
-准备好交叉编译工具链，可以选择安装或者下载。
-修改CMakelists.txt中arm32的交叉编译器 如：
+
+1. 准备 ARM Linux 交叉编译工具链，并将工具链的 `bin` 目录加入 `PATH`。以下以 `arm-linux-gnueabihf-gcc` 和 `arm-linux-gnueabihf-g++` 为例。
+
+2. 在工程根目录的 `CMakeLists.txt` 中，找到 `OS_ARCH` 为 `arm32` 且未设置 `OHOS_SYSROOT_PATH` 的 ARM Linux 配置分支，按实际工具链修改以下两项配置。该代码块为 CMake 配置，应写在文件中，不是在终端执行的 Shell 命令；如果已有配置与工具链一致，则无需修改。
+
+```cmake
+# ARM Linux 交叉编译器：分别用于编译 C 和 C++ 源文件
 set(CMAKE_C_COMPILER arm-linux-gnueabihf-gcc)
 set(CMAKE_CXX_COMPILER arm-linux-gnueabihf-g++)
--make OS_ARCH=arm32
+```
+
+3. 在工程根目录的终端中执行以下 Shell 命令，编译 ARM 32 位版本：
+
+```bash
+make OS_ARCH=arm32
+```
+
 ###### 交叉编译ARM openharmony环境
 交叉编译需要配置交叉编译环境，需要将鸿蒙交叉工具链和头文件准备好，并通过命令传入到编译脚本中
 例如：编译openharmony arm32命令：
