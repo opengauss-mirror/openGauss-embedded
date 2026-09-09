@@ -44,7 +44,7 @@
 - make install_debug: 对编译生成的debug版本进行安装
 - make uninstall: 卸载通过make install安装的release版本和通过make install_debug安装的debug版本
 
-##### 3、在windwos上编译
+##### 3、在windows上编译
 
 当前在windows上编译暂时只支持通过minGW工具进行编译，需要安装minGW/cmake/make，前提环境准备好后，在工程目录，执行
 mingw32-make.exe 进行编译。
